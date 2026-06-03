@@ -233,9 +233,13 @@ const HOURLY_VARS = ['temperature_2m','relative_humidity_2m',
 
 // Höhenwind (Gipfelwind) — nur ICON-D2 liefert Druckflächen zuverlässig
 const PLEVELS = [
+  {hpa:'925hPa', approx:'≈ 760 m'},
+  {hpa:'900hPa', approx:'≈ 990 m'},
   {hpa:'850hPa', approx:'≈ 1500 m'},
+  {hpa:'800hPa', approx:'≈ 1960 m'},
   {hpa:'700hPa', approx:'≈ 3000 m'},
-  {hpa:'500hPa', approx:'≈ 5500 m'},
+  {hpa:'600hPa', approx:'≈ 4200 m'},
+  {hpa:'500hPa', approx:'≈ 5600 m'},
 ];
 
 // Schnellauswahl: Alpen-Hotspots quer durch alle Länder
@@ -533,10 +537,25 @@ function renderFreezing(h, i, elev){
     else {stxt='Enge Übereinstimmung ('+spread+' m Spanne) — verlässlich.';}
   }
 
+  // Schneefallgrenze ≈ Null-Grad-Grenze − 250 m (Näherung; Schnee schmilzt beim Fall durch die wärmere Luft darunter)
+  let snowTxt='';
+  if(mean!=null){
+    const snow = Math.max(0, mean - 250);
+    let rel='';
+    if(elev!=null){
+      const d = elev - snow;
+      if(d>=100) rel = ' · <span class="up">Schnee bis zum Standort</span>';
+      else if(d<=-100) rel = ' · <span class="down">am Standort eher Regen</span>';
+      else rel = ' · <span class="down" style="color:var(--warn)">Schnee-/Regengrenze am Standort</span>';
+    }
+    snowTxt = `<div class="rel" style="margin-top:7px"><span class="muted">Schneefallgrenze</span> <b style="color:var(--ice2)">≈ ${snow.toLocaleString('de-DE')} m</b><span class="dim" style="font-size:11.5px"> (Näherung: Null-Grad −250 m)</span>${rel}</div>`;
+  }
+
   card.innerHTML = `
     <h2><span class="i">❄︎</span> Null-Grad-Grenze <span class="badge">0 °C-Isotherme</span></h2>
     <div class="zerobig"><span class="v">${mean!=null?mean.toLocaleString('de-DE'):'—'}</span><span class="u">m ü. NN · Konsens</span></div>
     <div class="rel">${relTxt}</div>
+    ${snowTxt}
     <div class="modellist">${rows||'<span class="muted">Kein Modell liefert hier die Null-Grad-Grenze.</span>'}</div>
     ${spread!=null?`<div class="spread ${cls}">${stxt}</div>`:''}`;
   return card;
@@ -582,10 +601,55 @@ function compassSVG(deg, ws){
   </svg>`;
 }
 
+// ---- Vertikales Windprofil (Höhe vs. Windgeschwindigkeit, Richtungspfeile) --
+function windProfileSVG(pts, elev){
+  if(pts.length<2) return '';
+  const W=340, H=252, padL=46, padR=22, padT=12, padB=30;
+  const sorted=[...pts].sort((a,b)=>a.alt-b.alt);
+  const alts=sorted.map(p=>p.alt), wss=sorted.map(p=>p.ws);
+  let aMin=Math.min(...alts), aMax=Math.max(...alts);
+  if(elev!=null && elev<aMin) aMin=elev;
+  const aPad=Math.max(50,(aMax-aMin)*0.05); aMin-=aPad; aMax+=aPad;
+  const wMax=Math.max(20, Math.ceil(Math.max(...wss)/10)*10);
+  const X=ws=>padL+(ws/wMax)*(W-padL-padR);
+  const Y=a=>padT+(1-(a-aMin)/((aMax-aMin)||1))*(H-padT-padB);
+
+  let xticks='';
+  for(let w=0; w<=wMax+0.1; w+=wMax/4){
+    xticks+=`<line x1="${X(w).toFixed(1)}" y1="${padT}" x2="${X(w).toFixed(1)}" y2="${H-padB}" stroke="var(--line)" stroke-width="0.5" opacity=".5"/>`;
+    xticks+=`<text x="${X(w).toFixed(1)}" y="${H-12}" fill="var(--muted)" font-size="9" text-anchor="middle">${Math.round(w)}</text>`;
+  }
+  const line=sorted.map((p,k)=>(k?'L':'M')+X(p.ws).toFixed(1)+' '+Y(p.alt).toFixed(1)).join(' ');
+  const area=`M${X(0).toFixed(1)} ${Y(sorted[0].alt).toFixed(1)} `+sorted.map(p=>`L${X(p.ws).toFixed(1)} ${Y(p.alt).toFixed(1)}`).join(' ')+` L${X(0).toFixed(1)} ${Y(sorted[sorted.length-1].alt).toFixed(1)} Z`;
+
+  let standort='';
+  if(elev!=null && elev>=aMin && elev<=aMax){
+    const ey=Y(elev).toFixed(1);
+    standort=`<line x1="${padL}" y1="${ey}" x2="${W-padR}" y2="${ey}" stroke="var(--dim)" stroke-width="1" stroke-dasharray="3 3"/><text x="${padL+3}" y="${(Y(elev)-3).toFixed(1)}" fill="var(--dim)" font-size="8.5">Standort ${Math.round(elev)} m</text>`;
+  }
+  let nodes='';
+  sorted.forEach(p=>{
+    const xx=X(p.ws), yy=Y(p.alt);
+    const col=p.ws>=62?'var(--bad)':p.ws>=39?'var(--warn)':'var(--ice)';
+    nodes+=`<text x="${(padL-6)}" y="${(yy+3).toFixed(1)}" fill="var(--muted)" font-size="8.5" text-anchor="end">${(p.alt/1000).toFixed(1).replace('.',',')}k</text>`;
+    nodes+=`<circle cx="${xx.toFixed(1)}" cy="${yy.toFixed(1)}" r="3.2" fill="${col}"/>`;
+    nodes+=`<g transform="translate(${(xx+12).toFixed(1)} ${yy.toFixed(1)})"><g transform="rotate(${p.wd==null?0:Math.round(p.wd)})"><path d="M0 -5.5 L3.4 4.5 L0 1.8 L-3.4 4.5 Z" fill="${col}"/></g></g>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;margin:2px auto 0">
+    ${xticks}
+    <path d="${area}" fill="var(--ice)" opacity=".08"/>
+    ${standort}
+    <path d="${line}" fill="none" stroke="var(--ice)" stroke-width="2" stroke-linejoin="round"/>
+    ${nodes}
+    <text x="${((padL+W-padR)/2).toFixed(1)}" y="${H-1}" fill="var(--dim)" font-size="8.5" text-anchor="middle">Windgeschwindigkeit (km/h) →</text>
+  </svg>`;
+}
+
 // ---- Gipfelwind (Höhenwind ICON-D2) ----------------------------------------
 function renderHighWind(hi, elev){
   const h = hi.hourly, i = nowIndex(h.time, hi.utc_offset_seconds);
   const card = el('div','card');
+  const pts=[];
   let rows='';
   PLEVELS.forEach(p=>{
     const ws = h['wind_speed_'+p.hpa]?.[i];
@@ -593,7 +657,7 @@ function renderHighWind(hi, elev){
     const gh = h['geopotential_height_'+p.hpa]?.[i];
     const tp = h['temperature_'+p.hpa]?.[i];
     if(ws==null) return;
-    const bft = beaufort(ws);
+    if(gh!=null) pts.push({alt:gh, ws, wd});
     const col = ws>=62?'var(--bad)':ws>=39?'var(--warn)':'var(--fg)';
     rows += `<tr>
       <td class="lvl">${gh!=null?Math.round(gh).toLocaleString('de-DE')+' m':p.approx}<br><small>${p.hpa}</small></td>
@@ -603,14 +667,16 @@ function renderHighWind(hi, elev){
       <td>${fmt1(tp)}°</td>
     </tr>`;
   });
+  const profile = windProfileSVG(pts, elev);
   card.innerHTML = `
     <h2><span class="i">⛰️</span> Gipfelwind nach Höhe <span class="badge">ICON-D2</span></h2>
+    ${profile?`<div style="margin:2px 0 12px">${profile}</div>`:''}
     <table>
       <tr><th>Höhe</th><th>Wind</th><th>~Bft</th><th>Richtung</th><th>Temp</th></tr>
       ${rows||'<tr><td colspan="5" class="muted">Keine Höhenwinddaten verfügbar.</td></tr>'}
     </table>
     <div class="footnote" style="text-align:left;margin-top:9px">
-      Wind auf Standard-Druckflächen — als Anhalt für die Gipfelregion. Am Grat/Gipfel oft deutlich stärker als im Tal.</div>`;
+      Profil aus ICON-D2-Druckflächen, Pfeil = Windrichtung (woher). Am Grat/Gipfel oft deutlich stärker als im Tal.</div>`;
   return card;
 }
 
@@ -658,7 +724,8 @@ function renderChart(h, i, elev){
   }
   const W=700, H=200, padL=44, padR=44, padT=16, padB=26;
   const fzv = fz.filter(v=>v!=null);
-  const fzScale = elev!=null ? fzv.concat(elev) : fzv;
+  const snowLo = fzv.length ? Math.max(0, Math.min(...fzv)-250) : null;  // tiefste Schneefallgrenze für Achsen-Skalierung
+  const fzScale = fzv.concat(elev!=null?[elev]:[], snowLo!=null?[snowLo]:[]);
   let fzMin = fzScale.length?Math.min(...fzScale):0, fzMax=fzScale.length?Math.max(...fzScale):3000;
   fzMin=Math.floor((fzMin-200)/250)*250; fzMax=Math.ceil((fzMax+200)/250)*250;
   if(fzMax-fzMin<500){fzMax=fzMin+500;}
@@ -671,6 +738,7 @@ function renderChart(h, i, elev){
 
   // Pfade
   const fzPath = lineToPath(fz, x, yF);
+  const snowPath = lineToPath(fz.map(v=>v==null?null:Math.max(0,v-250)), x, yF);  // Schneefallgrenze ≈ Null-Grad −250 m
   const tpPath = lineToPath(tp, x, yT);
   const elevY = elev!=null ? yF(elev) : null;
   const standortMarker = elev!=null
@@ -701,10 +769,12 @@ function renderChart(h, i, elev){
       ${standortMarker}
       ${yl}
       <path d="${fzPath}" fill="none" stroke="var(--ice)" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="${snowPath}" fill="none" stroke="var(--ice2)" stroke-width="1.6" stroke-dasharray="5 4" stroke-linejoin="round" opacity=".75"/>
       <path d="${tpPath}" fill="none" stroke="var(--warn)" stroke-width="1.8" stroke-linejoin="round" opacity=".9"/>
     </svg></div>
     <div class="legend">
       <span><i style="background:var(--ice)"></i> Null-Grad-Grenze (m, links)</span>
+      <span><i style="background:var(--ice2)"></i> Schneefallgrenze (≈ −250 m)</span>
       <span><i style="background:var(--warn)"></i> Temperatur am Standort (°C)</span>
     </div>`;
   return card;
