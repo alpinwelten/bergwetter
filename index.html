@@ -6,7 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bergwetter">
-<meta name="theme-color" content="#0d1b2a">
+<meta name="theme-color" content="#f2f7fc" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101d31" media="(prefers-color-scheme: dark)">
 <title>Bergwetter Alpen</title>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="Bergwetter">
@@ -17,16 +18,35 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <style>
   :root{
-    --bg:#0b1622; --bg2:#102135; --card:#16273c; --card2:#1c3350; --line:#26415e;
-    --fg:#eaf2fb; --muted:#8ca5c2; --dim:#5d779a;
-    --ice:#5cc4ff; --ice2:#9ad8ff; --warn:#ffb454; --bad:#ff6b6b; --ok:#52d6a0;
-    --icon-d2:#5cc4ff; --arome:#ffb454; --ch1:#ff8da1; --zamg:#52d6a0; --best:#eaf2fb;
+    color-scheme: light dark;
+    /* Helles Tag-Design (Standard) */
+    --bg:#e9eff6; --bg2:#dde7f1; --card:#ffffff; --card2:#eef4fb; --line:#cdd9e8;
+    --fg:#16273c; --muted:#566f88; --dim:#8094a8;
+    --ice:#1f86c8; --ice2:#15689f; --warn:#cf7411; --bad:#d63a36; --ok:#1f9e63;
+    --icon-d2:#1f86c8; --arome:#cf7411; --ch1:#c8456a; --zamg:#1f9e63; --best:#16273c;
+    --grad1:#f2f7fc; --grad2:#e6eef7; --header-bg:rgba(242,247,252,.86);
+    --hero-a:#e7f1fb; --hero-b:#d9e8f6; --hero-border:#c2d6ea;
+    --shadow:rgba(40,70,110,.18); --fav-bg:#e6f3e4; --fav-border:#9cc593;
+    --err-bg:#fdeef0; --err-border:#f0c2ca; --err-fg:#b02a40;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      /* Aufgehelltes Dunkel (Nacht) — heller & kontrastreicher als zuvor */
+      --bg:#122036; --bg2:#1b2d46; --card:#20344f; --card2:#27405f; --line:#395f86;
+      --fg:#eef5fc; --muted:#a2b9d4; --dim:#7189a4;
+      --ice:#5cc4ff; --ice2:#9ad8ff; --warn:#ffb454; --bad:#ff6b6b; --ok:#52d6a0;
+      --icon-d2:#5cc4ff; --arome:#ffb454; --ch1:#ff8da1; --zamg:#52d6a0; --best:#eef5fc;
+      --grad1:#101d31; --grad2:#15263c; --header-bg:rgba(16,29,49,.86);
+      --hero-a:#1d3a58; --hero-b:#16293f; --hero-border:#33567c;
+      --shadow:rgba(0,0,0,.5); --fav-bg:#16271a; --fav-border:#3a5d33;
+      --err-bg:#2a1620; --err-border:#5a2a36; --err-fg:#ffb3bf;
+    }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
-    background:linear-gradient(180deg,#0b1622 0%,#0d1b2a 40%,#0b1622 100%);
+    background:linear-gradient(180deg,var(--grad1) 0%,var(--grad2) 40%,var(--grad1) 100%);
     color:var(--fg); line-height:1.45; min-height:100vh;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     -webkit-font-smoothing:antialiased;
@@ -37,7 +57,7 @@
   .muted{color:var(--muted)} .dim{color:var(--dim)}
 
   /* --- Kopf / Ortswahl --- */
-  header{position:sticky;top:0;z-index:30;background:rgba(11,22,34,.86);
+  header{position:sticky;top:0;z-index:30;background:var(--header-bg);
     backdrop-filter:saturate(140%) blur(12px);-webkit-backdrop-filter:saturate(140%) blur(12px);
     margin:-14px -14px 12px;padding:12px 14px 10px;border-bottom:1px solid var(--line)}
   .titlerow{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -52,7 +72,7 @@
   .btn:active{background:var(--bg2)}
   .btn.gps{padding:0 12px}
   #results{position:absolute;top:48px;left:0;right:0;background:var(--card);border:1px solid var(--line);
-    border-radius:12px;overflow:hidden;z-index:40;display:none;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+    border-radius:12px;overflow:hidden;z-index:40;display:none;box-shadow:0 14px 40px var(--shadow)}
   #results div{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14.5px}
   #results div:last-child{border:0}
   #results div:active{background:var(--bg2)}
@@ -62,7 +82,7 @@
   .chips::-webkit-scrollbar{display:none}
   .chip{flex:0 0 auto;background:var(--card);border:1px solid var(--line);color:var(--fg);
     border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer}
-  .chip.fav{border-color:#3a5d33;background:#16271a}
+  .chip.fav{border-color:var(--fav-border);background:var(--fav-bg)}
   .chip:active{background:var(--bg2)}
 
   /* --- Karten --- */
@@ -72,7 +92,7 @@
   .card h2 .i{color:var(--ice)}
 
   /* --- Hero --- */
-  .hero{background:linear-gradient(150deg,#16304c 0%,#13243a 60%,#16273c 100%);border-color:#2a4a6e}
+  .hero{background:linear-gradient(150deg,var(--hero-a) 0%,var(--hero-b) 60%,var(--card) 100%);border-color:var(--hero-border)}
   .hero .place{font-size:20px;font-weight:700}
   .hero .when{color:var(--muted);font-size:12.5px;margin-top:1px}
   .heromain{display:flex;align-items:center;gap:14px;margin-top:12px}
@@ -155,7 +175,7 @@
   .footnote{font-size:11.5px;color:var(--dim);text-align:center;margin-top:8px;line-height:1.6}
   .footnote a{color:var(--muted)}
   .status{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px}
-  .err{background:#2a1620;border:1px solid #5a2a36;color:#ffb3bf;padding:12px;border-radius:12px;font-size:13.5px}
+  .err{background:var(--err-bg);border:1px solid var(--err-border);color:var(--err-fg);padding:12px;border-radius:12px;font-size:13.5px}
   .hidden{display:none!important}
   .badge{font-size:10px;padding:2px 6px;border-radius:5px;background:var(--bg2);color:var(--muted);margin-left:6px;vertical-align:middle}
   .reload{font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px}
@@ -171,8 +191,8 @@
     <div class="titlerow">
       <div class="logo">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <path d="M3 19L9 7l4 7 2-3 6 8z" fill="#5cc4ff" opacity=".9"/>
-          <path d="M9 7l2.2 4.1L9.5 13 7 12z" fill="#eaf2fb" opacity=".95"/>
+          <path d="M3 19L9 7l4 7 2-3 6 8z" fill="var(--ice)" opacity=".9"/>
+          <path d="M9 7l2.2 4.1L9.5 13 7 12z" fill="var(--ice2)" opacity=".95"/>
         </svg>
         <div>
           <h1>Bergwetter <span style="color:var(--muted);font-weight:400">Alpen</span></h1>
