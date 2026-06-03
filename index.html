@@ -229,7 +229,7 @@ const MODELS = [
 ];
 const HOURLY_VARS = ['temperature_2m','relative_humidity_2m',
   'wind_speed_10m','wind_gusts_10m','wind_direction_10m','freezing_level_height',
-  'precipitation','snowfall','weather_code','cloud_cover'];
+  'precipitation','snowfall','weather_code','cloud_cover','pressure_msl'];
 
 // Höhenwind (Gipfelwind) — nur ICON-D2 liefert Druckflächen zuverlässig
 const PLEVELS = [
@@ -440,6 +440,13 @@ function render(data, hi, o){
   const wd  = get(h,'wind_direction_10m',ref,i);
   const rh  = get(h,'relative_humidity_2m',ref,i);
   const code= get(h,'weather_code',ref,i);
+  const pmsl= get(h,'pressure_msl',ref,i);                                 // Luftdruck auf Meereshöhe (NN), hPa
+  const pPrev= get(h,'pressure_msl',ref,Math.max(0,i-3));
+  const pTrend = (pmsl!=null && pPrev!=null) ? Math.round((pmsl-pPrev)*10)/10 : null;  // Tendenz über 3 h
+  const pArrow = pTrend==null ? '' :
+    pTrend>=1   ? '<span style="color:var(--ok)">↗</span>' :
+    pTrend<=-1  ? '<span style="color:var(--warn)">↘</span>' :
+                  '<span style="color:var(--dim)">→</span>';
   const wc  = windchill(T, ws);
   const [icon, txt] = wmo(code);
 
@@ -455,6 +462,7 @@ function render(data, hi, o){
         <div>Wind <b>${fmt(ws)}</b> km/h</div>
         <div>Böen <b>${fmt(wg)}</b> km/h ${windArrow(wd,14)}</div>
         <div>Feuchte <b>${fmt(rh)}</b> %</div>
+        <div title="Luftdruck auf Meereshöhe (NN), 3-h-Tendenz">Druck NN <b>${fmt(pmsl)}</b> hPa ${pArrow}</div>
       </div>
     </div>
     <div class="feels">Gefühlt (Windchill): <b>${fmt(wc)}°</b>${T!=null&&wc!=null&&Math.abs(wc-T)>=1?' · '+fmt(wc-T)+'° durch Wind':''}</div>`;
