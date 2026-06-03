@@ -1,31 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Bergwetter">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#17314e"/>
-      <stop offset="0.55" stop-color="#0d1b2a"/>
-      <stop offset="1" stop-color="#0a1420"/>
-    </linearGradient>
-    <linearGradient id="peak" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#9ad8ff"/>
-      <stop offset="0.5" stop-color="#5cc4ff"/>
-      <stop offset="1" stop-color="#2a4a6e"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Vollflächiger Hintergrund (App-Nachthimmel); OS rundet die Ecken -->
-  <rect x="0" y="0" width="512" height="512" fill="url(#sky)"/>
-
-  <!-- Hintere Gipfel -->
-  <path d="M28 430 L168 250 L312 430 Z" fill="#20395a"/>
-  <path d="M250 430 L382 222 L496 430 Z" fill="#1a3150"/>
-  <path d="M382 222 L404 258 L389 249 L382 266 L373 247 L356 258 Z" fill="#cfe8fb" opacity="0.85"/>
-
-  <!-- Null-Grad-Grenze (0 °C-Isotherme) als dezente, gestrichelte Linie -->
-  <line x1="40" y1="300" x2="472" y2="300" stroke="#5cc4ff" stroke-width="4"
-        stroke-dasharray="14 12" stroke-linecap="round" opacity="0.45"/>
-
-  <!-- Vorderer Hauptgipfel – ragt über die Null-Grad-Grenze -->
-  <path d="M104 430 L256 150 L408 430 Z" fill="url(#peak)"/>
-  <!-- Schneehaube -->
-  <path d="M256 150 L300 218 L278 206 L256 234 L234 209 L212 222 Z" fill="#eaf2fb"/>
+<defs>
+  <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0%" stop-color="#4F6BFF"/>
+    <stop offset="55%" stop-color="#4B93F8"/>
+    <stop offset="100%" stop-color="#6EA8FF"/>
+  </linearGradient>
+</defs>
+<rect x="0" y="0" width="512" height="512" fill="url(#bg)"/>
+<g transform="translate(91 178.598) scale(0.390533)">
+  <path d="M 593 135 L 474 8 L 469 4 L 459 0 L 441 1 L 431 7 L 332 107 L 259 177 L 173 256 L 103 316 L 87 329 L 72 341 L 67 345 L 61 349 L 54 355 L 42 364 L 19 381 L 3 393 L 0 401 L 1 408 L 3 412 L 8 417 L 17 420 L 182 420 L 219 416 L 237 414 L 263 408 L 291 399 L 317 388 L 342 374 L 365 358 L 383 343 L 405 321 L 432 289 L 487 213 L 503 194 L 521 176 L 537 163 L 557 150 L 575 141 Z" fill="#FFFFFF"/>
+  <path d="M 844 386 L 840 374 L 833 365 L 677 189 L 665 177 L 658 172 L 643 165 L 634 163 L 613 163 L 590 170 L 576 178 L 560 190 L 535 215 L 524 228 L 503 256 L 469 305 L 439 342 L 408 373 L 391 387 L 368 403 L 338 419 L 821 419 L 829 416 L 839 407 L 844 394 Z" fill="#DCE8FF"/>
+</g>
 </svg>

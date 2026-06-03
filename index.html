@@ -19,26 +19,26 @@
 <style>
   :root{
     color-scheme: light dark;
-    /* Helles Tag-Design (Standard) */
-    --bg:#e9eff6; --bg2:#dde7f1; --card:#ffffff; --card2:#eef4fb; --line:#cdd9e8;
-    --fg:#16273c; --muted:#566f88; --dim:#8094a8;
-    --ice:#1f86c8; --ice2:#15689f; --warn:#cf7411; --bad:#d63a36; --ok:#1f9e63;
-    --icon-d2:#1f86c8; --arome:#cf7411; --ch1:#c8456a; --zamg:#1f9e63; --best:#16273c;
-    --grad1:#f2f7fc; --grad2:#e6eef7; --header-bg:rgba(242,247,252,.86);
-    --hero-a:#e7f1fb; --hero-b:#d9e8f6; --hero-border:#c2d6ea;
-    --shadow:rgba(40,70,110,.18); --fav-bg:#e6f3e4; --fav-border:#9cc593;
+    /* firn.ai — helles Tag-Design (Standard) */
+    --bg:#eef3fd; --bg2:#e3ebfb; --card:#ffffff; --card2:#f1f5ff; --line:#d4e0f5;
+    --fg:#0d1321; --muted:#5a6a8a; --dim:#8893b0;
+    --ice:#3f5fe6; --ice2:#2c45c4; --warn:#e8870e; --bad:#e23b3b; --ok:#1f9e63;
+    --icon-d2:#3f5fe6; --arome:#e8870e; --ch1:#c8456a; --zamg:#1f9e63; --best:#0d1321;
+    --grad1:#f4f7ff; --grad2:#e9f0fd; --header-bg:rgba(244,247,255,.86);
+    --hero-a:#e6edff; --hero-b:#dbe6ff; --hero-border:#c4d4f5;
+    --shadow:rgba(40,60,130,.16); --fav-bg:#e6f3e4; --fav-border:#9cc593;
     --err-bg:#fdeef0; --err-border:#f0c2ca; --err-fg:#b02a40;
   }
   @media (prefers-color-scheme: dark){
     :root{
-      /* Aufgehelltes Dunkel (Nacht) — heller & kontrastreicher als zuvor */
-      --bg:#122036; --bg2:#1b2d46; --card:#20344f; --card2:#27405f; --line:#395f86;
-      --fg:#eef5fc; --muted:#a2b9d4; --dim:#7189a4;
-      --ice:#5cc4ff; --ice2:#9ad8ff; --warn:#ffb454; --bad:#ff6b6b; --ok:#52d6a0;
-      --icon-d2:#5cc4ff; --arome:#ffb454; --ch1:#ff8da1; --zamg:#52d6a0; --best:#eef5fc;
-      --grad1:#101d31; --grad2:#15263c; --header-bg:rgba(16,29,49,.86);
-      --hero-a:#1d3a58; --hero-b:#16293f; --hero-border:#33567c;
-      --shadow:rgba(0,0,0,.5); --fav-bg:#16271a; --fav-border:#3a5d33;
+      /* firn.ai — Dunkel (Nacht), Basis #0D1321 */
+      --bg:#0d1321; --bg2:#141d30; --card:#18223a; --card2:#1f2b46; --line:#2c3a59;
+      --fg:#eaf1ff; --muted:#9fb0d0; --dim:#6f80a0;
+      --ice:#6ea8ff; --ice2:#8fc0ff; --warn:#ffb454; --bad:#ff6b6b; --ok:#52d6a0;
+      --icon-d2:#6ea8ff; --arome:#ffb454; --ch1:#ff8da1; --zamg:#52d6a0; --best:#eaf1ff;
+      --grad1:#0b1020; --grad2:#0f1626; --header-bg:rgba(10,15,28,.86);
+      --hero-a:#1b2a4a; --hero-b:#141d33; --hero-border:#2e3f63;
+      --shadow:rgba(0,0,0,.55); --fav-bg:#16271a; --fav-border:#3a5d33;
       --err-bg:#2a1620; --err-border:#5a2a36; --err-fg:#ffb3bf;
     }
   }
@@ -195,9 +195,13 @@
   <header>
     <div class="titlerow">
       <div class="logo">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <path d="M3 19L9 7l4 7 2-3 6 8z" fill="var(--ice)" opacity=".9"/>
-          <path d="M9 7l2.2 4.1L9.5 13 7 12z" fill="var(--ice2)" opacity=".95"/>
+        <svg width="54" height="27" viewBox="0 0 845 422" fill="none" aria-label="firn">
+          <defs>
+            <linearGradient id="bwm-l" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#3457FF"/><stop offset="45%" stop-color="#6EA8FF"/><stop offset="100%" stop-color="#C8D7FF"/></linearGradient>
+            <linearGradient id="bwm-r" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#EAF3FF"/><stop offset="55%" stop-color="#DCE9FF"/><stop offset="100%" stop-color="#C7D9FF"/></linearGradient>
+          </defs>
+          <path d="M 593 135 L 474 8 L 469 4 L 459 0 L 441 1 L 431 7 L 332 107 L 259 177 L 173 256 L 103 316 L 87 329 L 72 341 L 67 345 L 61 349 L 54 355 L 42 364 L 19 381 L 3 393 L 0 401 L 1 408 L 3 412 L 8 417 L 17 420 L 182 420 L 219 416 L 237 414 L 263 408 L 291 399 L 317 388 L 342 374 L 365 358 L 383 343 L 405 321 L 432 289 L 487 213 L 503 194 L 521 176 L 537 163 L 557 150 L 575 141 Z" fill="url(#bwm-l)"/>
+          <path d="M 844 386 L 840 374 L 833 365 L 677 189 L 665 177 L 658 172 L 643 165 L 634 163 L 613 163 L 590 170 L 576 178 L 560 190 L 535 215 L 524 228 L 503 256 L 469 305 L 439 342 L 408 373 L 391 387 L 368 403 L 338 419 L 821 419 L 829 416 L 839 407 L 844 394 Z" fill="url(#bwm-r)"/>
         </svg>
         <div>
           <h1>Bergwetter <span style="color:var(--muted);font-weight:400">Alpen</span></h1>

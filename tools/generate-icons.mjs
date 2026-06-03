@@ -32,8 +32,8 @@ for (const n of SIZES) {
   console.log(`icon-${n}.png`);
 }
 
-// Maskable: Motiv in der Safe-Zone (~80 %), Hintergrund voll deckend (App-Nachtblau).
+// Maskable: icon.svg ist full-bleed (firn-Verlauf bis zum Rand, Motiv in der Safe-Zone) → 1:1 rendern.
 render(
-  `<!doctype html><meta charset=utf-8><body style="margin:0;background:#0d1b2a"><div style="width:512px;height:512px;display:flex;align-items:center;justify-content:center"><img src="file://${svg}" width=410 height=410></div></body>`,
+  `<!doctype html><meta charset=utf-8><body style="margin:0"><img src="file://${svg}" width=512 height=512 style="display:block"></body>`,
   join(root, 'icons', 'icon-maskable-512.png'), 512, 512);
 console.log('icon-maskable-512.png');
