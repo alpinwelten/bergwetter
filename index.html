@@ -162,6 +162,7 @@
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
   .legend span{display:inline-flex;align-items:center;gap:6px}
   .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .legend svg{flex:0 0 auto}
 
   /* --- Tage --- */
   .day{display:grid;grid-template-columns:46px 30px 1fr auto;gap:10px;align-items:center;
@@ -706,9 +707,9 @@ function renderChart(h, i, elev){
       <path d="${tpPath}" fill="none" stroke="var(--warn)" stroke-width="1.8" stroke-linejoin="round" opacity=".9"/>
     </svg></div>
     <div class="legend">
-      <span><i style="background:var(--ice)"></i> Null-Grad-Grenze (m, links)</span>
-      <span><i style="background:var(--ice2)"></i> Schneefallgrenze (≈ −250 m)</span>
-      <span><i style="background:var(--warn)"></i> Temperatur am Standort (°C)</span>
+      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice)" stroke-width="3"/></svg> Null-Grad-Grenze (m, links)</span>
+      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice2)" stroke-width="3" stroke-dasharray="4 3"/></svg> Schneefallgrenze (≈ −250 m, gestrichelt)</span>
+      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--warn)" stroke-width="3"/></svg> Temperatur am Standort (°C)</span>
     </div>`;
   return card;
 }
