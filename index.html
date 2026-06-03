@@ -140,6 +140,11 @@
   .lvl{font-weight:600}
   .lvl small{color:var(--muted);font-weight:400}
 
+  /* --- Prognose-Sicherheit --- */
+  .relhead{display:flex;align-items:center;gap:9px;font-size:16px;margin:2px 0 6px}
+  .reldot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .reldetail{font-size:13.5px;color:var(--fg);line-height:1.5}
+
   /* --- Stundenverlauf --- */
   .hours{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
   .hours::-webkit-scrollbar{display:none}
@@ -453,6 +458,9 @@ function render(data, o){
     <div class="feels">Gefühlt (Windchill): <b>${fmt(wc)}°</b>${T!=null&&wc!=null&&Math.abs(wc-T)>=1?' · '+fmt(wc-T)+'° durch Wind':''}</div>`;
   m.appendChild(hero);
 
+  // ---- PROGNOSE-SICHERHEIT (Modell-Einigkeit) ----
+  m.appendChild(renderReliability(h, i));
+
   // ---- NULL-GRAD-GRENZE ----
   m.appendChild(renderFreezing(h, i, elev));
 
@@ -483,6 +491,51 @@ function render(data, o){
 function windArrow(deg, size=16){
   if(deg==null) return '';
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="vertical-align:-2px;transform:rotate(${deg}deg)" fill="var(--ice)"><path d="M12 3l5 9h-3.2v9h-3.6v-9H7z"/></svg>`;
+}
+
+// ---- Prognose-Sicherheit (Einigkeit der unabhängigen Modelle, nächste 12 h) ---
+function renderReliability(h, i){
+  const INDEP = MODELS.filter(mo=>mo.id!=='best_match');   // 4 nationale Modelle, ohne Best-Match
+  const WIN=12, end=Math.min(h.time.length, i+WIN);
+  const rows=[];
+  INDEP.forEach(mo=>{
+    const T = get(h,'temperature_2m',mo.id,i);
+    if(T==null) return;                                    // Modell deckt den Ort nicht ab
+    let wet=false;
+    for(let k=i;k<end;k++){
+      const c=get(h,'weather_code',mo.id,k), pr=get(h,'precipitation',mo.id,k);
+      if((pr!=null && pr>=0.2) || (c!=null && c>=51)){ wet=true; break; }   // 51+ = Niederschlag
+    }
+    rows.push({mo, T, wet});
+  });
+  const n=rows.length;
+  const card=el('div','card');
+  if(n<2){
+    card.innerHTML = `<h2><span class="i">◉</span> Prognose-Sicherheit</h2>
+      <div class="reldetail muted">Für diesen Ort liefert nur ein Modell Daten — keine Vergleichsbasis.</div>`;
+    return card;
+  }
+  const temps=rows.map(r=>r.T);
+  const tSpread=Math.round(Math.max(...temps)-Math.min(...temps));
+  const wetN=rows.filter(r=>r.wet).length, dryN=n-wetN;
+  let col,sym,head,detail;
+  if(wetN>0 && dryN>0){                                    // Niederschlag uneinig = der „Sonne/Regen"-Fall
+    col='var(--bad)'; sym='▲'; head='Niederschlag unsicher';
+    detail=`${wetN} von ${n} Modellen erwarten Niederschlag (12 h), ${dryN} nicht — Lage offen, konservativ planen.`;
+  } else if(tSpread>=4){
+    col='var(--warn)'; sym='◐'; head='Teils unsicher';
+    detail=`Temperatur uneinig — ${tSpread}° Spanne zwischen den Modellen. Niederschlag: ${wetN?'alle erwarten welchen':'alle trocken'} (einig).`;
+  } else {
+    col='var(--ok)'; sym='●'; head='Verlässlich';
+    detail=`Modelle einig · Temp-Spanne ${tSpread}° · ${wetN?'Niederschlag erwartet':'kein Niederschlag'} (12 h).`;
+  }
+  const names=rows.map(r=>r.mo.nm).join(' · ');
+  card.innerHTML = `
+    <h2><span class="i" style="color:${col}">◉</span> Prognose-Sicherheit <span class="badge">nächste 12 h</span></h2>
+    <div class="relhead"><span class="reldot" style="background:${col}"></span><b style="color:${col}">${sym} ${head}</b></div>
+    <div class="reldetail">${detail}</div>
+    <div class="dim" style="font-size:11.5px;margin-top:7px">Verglichen: ${names}</div>`;
+  return card;
 }
 
 // ---- Null-Grad-Grenze -------------------------------------------------------
@@ -668,23 +721,26 @@ function lineToPath(arr, x, y){
 // ---- Stundenverlauf ---------------------------------------------------------
 function renderHours(h, i){
   const card = el('div','card');
-  let cells='';
-  for(let k=i; k<Math.min(h.time.length, i+24); k++){
+  let cells='', lastDay='';
+  for(let k=i; k<Math.min(h.time.length, i+48); k++){
     const T = get(h,'temperature_2m','best_match',k);
     const ws= get(h,'wind_speed_10m','best_match',k);
     const fz= get(h,'freezing_level_height','best_match',k);
     const code=get(h,'weather_code','best_match',k);
     const [ic]=wmo(code);
-    const hh = fmtTime(h.time[k]).slice(0,5);
+    const day = h.time[k].split('T')[0];
+    const newDay = day!==lastDay; lastDay=day;
+    const hh = fmtTime(h.time[k]).slice(0,2);                          // nur die Stunde
+    const label = k===i ? 'jetzt' : (newDay ? fmtDay(day) : hh);       // Tageswechsel -> Wochentag als Trenner
     cells += `<div class="hr">
-      <div class="t">${k===i?'jetzt':hh}</div>
+      <div class="t"${newDay&&k!==i?' style="color:var(--ice);font-weight:700"':''}>${label}</div>
       <div class="ic">${ic}</div>
       <div class="tp">${fmt(T)}°</div>
       <div class="wd">${fmt(ws)}</div>
       <div class="fz">${fz!=null?Math.round(fz/100)/10+'k':'—'}</div>
     </div>`;
   }
-  card.innerHTML = `<h2><span class="i">🕐</span> Nächste 24 h <span class="badge">Temp · Wind km/h · Null-Grad</span></h2>
+  card.innerHTML = `<h2><span class="i">🕐</span> Nächste 48 h <span class="badge">Temp · Wind km/h · Null-Grad</span></h2>
     <div class="hours">${cells}</div>`;
   return card;
 }
