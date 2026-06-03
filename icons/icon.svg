@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Bergwetter">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17314e"/>
+      <stop offset="0.55" stop-color="#0d1b2a"/>
+      <stop offset="1" stop-color="#0a1420"/>
+    </linearGradient>
+    <linearGradient id="peak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ad8ff"/>
+      <stop offset="0.5" stop-color="#5cc4ff"/>
+      <stop offset="1" stop-color="#2a4a6e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Vollflächiger Hintergrund (App-Nachthimmel); OS rundet die Ecken -->
+  <rect x="0" y="0" width="512" height="512" fill="url(#sky)"/>
+
+  <!-- Hintere Gipfel -->
+  <path d="M28 430 L168 250 L312 430 Z" fill="#20395a"/>
+  <path d="M250 430 L382 222 L496 430 Z" fill="#1a3150"/>
+  <path d="M382 222 L404 258 L389 249 L382 266 L373 247 L356 258 Z" fill="#cfe8fb" opacity="0.85"/>
+
+  <!-- Null-Grad-Grenze (0 °C-Isotherme) als dezente, gestrichelte Linie -->
+  <line x1="40" y1="300" x2="472" y2="300" stroke="#5cc4ff" stroke-width="4"
+        stroke-dasharray="14 12" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- Vorderer Hauptgipfel – ragt über die Null-Grad-Grenze -->
+  <path d="M104 430 L256 150 L408 430 Z" fill="url(#peak)"/>
+  <!-- Schneehaube -->
+  <path d="M256 150 L300 218 L278 206 L256 234 L234 209 L212 222 Z" fill="#eaf2fb"/>
+</svg>

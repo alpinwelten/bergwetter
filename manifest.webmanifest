@@ -1,0 +1,19 @@
+{
+  "name": "Bergwetter Alpen",
+  "short_name": "Bergwetter",
+  "description": "Alpines Bergwetter mit Modell-Konsens: Null-Grad-Grenze, Wind, Windchill und Gipfelwind – ICON-D2, AROME, ICON-CH1 & GeoSphere Austria via Open-Meteo.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1622",
+  "theme_color": "#0d1b2a",
+  "categories": ["weather", "sports", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
