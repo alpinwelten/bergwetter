@@ -1,7 +1,7 @@
 {
   "name": "Bergwetter Alpen",
   "short_name": "Bergwetter",
-  "description": "Alpines Bergwetter mit Modell-Konsens: Null-Grad-Grenze, Wind, Windchill und Gipfelwind – ICON-D2, AROME, ICON-CH1 & GeoSphere Austria via Open-Meteo.",
+  "description": "Alpines Bergwetter mit Modell-Konsens: Null-Grad- & Schneefallgrenze, Wind, Windchill und Luftdruck – ICON-D2, ICON-CH1 & GeoSphere via Open-Meteo.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "./",
