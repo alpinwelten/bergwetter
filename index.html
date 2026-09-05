@@ -520,48 +520,50 @@ function windArrow(deg, size=16){
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" role="img" style="vertical-align:-2px;transform:rotate(${(deg+180)%360}deg)" fill="var(--ice)"><title>weht nach ${dir16full((deg+180)%360)}</title><path d="M12 3l5 9h-3.2v9h-3.6v-9H7z"/></svg>`;
 }
 
-// ---- Prognose-Sicherheit (Einigkeit der unabhängigen Modelle, nächste 12 h) ---
+// ---- Modellübereinstimmung: Temperatur jetzt, Niederschlag nächste 12 h ----
 function renderReliability(h, i){
-  const INDEP = MODELS.filter(mo=>mo.id!=='best_match');   // 4 nationale Modelle, ohne Best-Match
+  const models = MODELS.filter(mo=>mo.id!=='best_match');
   const WIN=12, end=Math.min(h.time.length, i+WIN);
-  const rows=[];
-  INDEP.forEach(mo=>{
-    const T = get(h,'temperature_2m',mo.id,i);
-    if(T==null) return;                                    // Modell deckt den Ort nicht ab
-    let wet=false;
+  const rows=models.map(mo=>{
+    const T=get(h,'temperature_2m',mo.id,i);
+    let wet=false, complete=end-i===WIN;
     for(let k=i;k<end;k++){
       const c=get(h,'weather_code',mo.id,k), pr=get(h,'precipitation',mo.id,k);
-      if((pr!=null && pr>=0.2) || (c!=null && c>=51)){ wet=true; break; }   // 51+ = Niederschlag
+      if(pr==null && c==null) complete=false;
+      if((pr!=null && pr>=0.2) || (c!=null && c>=51)) wet=true;
     }
-    rows.push({mo, T, wet});
-  });
-  const n=rows.length;
-  const card=el('div','card');
+    return {mo,T,wet:wet?true:complete?false:null};
+  }).filter(r=>r.T!=null);
+  const n=rows.length, card=el('div','card');
+  const scope='Temperatur: aktuelle Stunde · Niederschlag: nächste 12 h (ab 0,2 mm/h oder Niederschlags-Wettercode). Wind und Böen werden hier nicht bewertet. Modellübereinstimmung ist keine Garantie für die Vorhersage.';
   if(n<2){
-    card.innerHTML = `<h2><span class="i">◉</span> Prognose-Sicherheit</h2>
-      <div class="reldetail muted">Für diesen Ort liefert nur ein Modell Daten — keine Vergleichsbasis.</div>`;
+    card.innerHTML = `<h2><span class="i">◉</span> Modellübereinstimmung</h2>
+      <div class="reldetail muted">${n===0?'Kein Modell liefert':'Nur ein Modell liefert'} aktuelle Temperaturdaten – keine Vergleichsbasis.</div>
+      <div class="muted" style="font-size:12px;margin-top:7px">${scope}</div>`;
     return card;
   }
-  const temps=rows.map(r=>r.T);
-  const tSpread=Math.round(Math.max(...temps)-Math.min(...temps));
-  const wetN=rows.filter(r=>r.wet).length, dryN=n-wetN;
+  const temps=rows.map(r=>r.T), tSpread=Math.max(...temps)-Math.min(...temps);
+  const wetN=rows.filter(r=>r.wet===true).length, dryN=rows.filter(r=>r.wet===false).length;
+  const unknown=n-wetN-dryN;
   let col,sym,head,detail;
-  if(wetN>0 && dryN>0){                                    // Niederschlag uneinig = der „Sonne/Regen"-Fall
-    col='var(--bad)'; sym='▲'; head='Niederschlag unsicher';
-    detail=`${wetN} von ${n} Modellen erwarten Niederschlag (12 h), ${dryN} nicht — Lage offen, konservativ planen.`;
+  if(wetN>0 && dryN>0){
+    col='var(--bad)'; sym='▲'; head='Niederschlag: Modelle uneinig';
+    detail=`${wetN} Modelle erwarten Niederschlag (12 h), ${dryN} nicht. ${unknown?unknown+' Modelle mit unvollständigen Niederschlagsdaten.':''}`;
+  } else if(unknown){
+    col='var(--warn)'; sym='◐'; head='Vergleich unvollständig';
+    detail=`Bei ${unknown} von ${n} Modellen fehlen ausreichende Niederschlagsdaten für zwölf Stunden. Eine vollständige Übereinstimmung ist nicht bewertbar.`;
   } else if(tSpread>=4){
-    col='var(--warn)'; sym='◐'; head='Teils unsicher';
-    detail=`Temperatur uneinig — ${tSpread}° Spanne zwischen den Modellen. Niederschlag: ${wetN?'alle erwarten welchen':'alle trocken'} (einig).`;
+    col='var(--warn)'; sym='◐'; head='Temperatur: Modelle uneinig';
+    detail=`Temperaturspanne ${fmt1(tSpread)} °C. Niederschlag: ${wetN?'alle erwarten welchen':'alle unter der Niederschlagsschwelle'} (12 h).`;
   } else {
-    col='var(--ok)'; sym='●'; head='Verlässlich';
-    detail=`Modelle einig · Temp-Spanne ${tSpread}° · ${wetN?'Niederschlag erwartet':'kein Niederschlag'} (12 h).`;
+    col='var(--ok)'; sym='●'; head='Hohe Übereinstimmung';
+    detail=`Temperaturspanne ${fmt1(tSpread)} °C · ${wetN?'alle erwarten Niederschlag':'alle unter der Niederschlagsschwelle'} (12 h).`;
   }
-  const names=rows.map(r=>r.mo.nm).join(' · ');
-  card.innerHTML = `
-    <h2><span class="i" style="color:${col}">◉</span> Prognose-Sicherheit <span class="badge">nächste 12 h</span></h2>
+  card.innerHTML = `<h2><span class="i" style="color:${col}">◉</span> Modellübereinstimmung</h2>
     <div class="relhead"><span class="reldot" style="background:${col}"></span><b style="color:${col}">${sym} ${head}</b></div>
     <div class="reldetail">${detail}</div>
-    <div class="dim" style="font-size:11.5px;margin-top:7px">Verglichen: ${names}</div>`;
+    <div class="muted" style="font-size:12px;margin-top:7px">${scope}</div>
+    <div class="muted" style="font-size:11.5px;margin-top:7px">Verglichen: ${rows.map(r=>r.mo.nm).join(' · ')}</div>`;
   return card;
 }
 
@@ -569,14 +571,19 @@ function renderReliability(h, i){
 function renderFreezing(h, i, elev){
   const card = el('div','card');
   const vals = [];
-  MODELS.filter(mo=>mo.hasFreezing).forEach(mo=>{
+  MODELS.filter(mo=>mo.hasFreezing && mo.id!=='best_match').forEach(mo=>{
     const v = get(h,'freezing_level_height',mo.id,i);
     if(v!=null) vals.push({mo, v});
   });
+  // Best-Match is a fallback, never an additional vote in the model mean.
+  if(!vals.length){
+    const v=get(h,'freezing_level_height','best_match',i);
+    if(v!=null) vals.push({mo:MODELS[0],v});
+  }
   const just = vals.map(x=>x.v);
   const mean = just.length ? Math.round(just.reduce((a,b)=>a+b,0)/just.length) : null;
   const mn = just.length?Math.min(...just):null, mx = just.length?Math.max(...just):null;
-  const spread = (mn!=null)?(mx-mn):null;
+  const spread = just.length>=2 ? mx-mn : null;
 
   let relTxt='';
   if(mean!=null && elev!=null){
@@ -597,34 +604,27 @@ function renderFreezing(h, i, elev){
       <span class="vv">${v} m</span></div>`;
   });
 
-  let cls='tight', stxt='Modelle stimmen gut überein — verlässliche Null-Grad-Grenze.';
+  let cls='med', stxt='Nur ein Modellwert verfügbar – keine Vergleichsbasis.';
   if(spread!=null){
     if(spread>500){cls='wide';stxt='Modelle laufen stark auseinander ('+spread+' m Spanne) — Prognose unsicher, konservativ planen.';}
     else if(spread>200){cls='med';stxt='Mäßige Streuung ('+spread+' m) zwischen den Modellen.';}
-    else {stxt='Enge Übereinstimmung ('+spread+' m Spanne) — verlässlich.';}
+    else {cls='tight';stxt='Enge Übereinstimmung ('+spread+' m Spanne) – keine Garantie für die Vorhersage.';}
   }
 
   // Schneefallgrenze ≈ Null-Grad-Grenze − 250 m (Näherung; Schnee schmilzt beim Fall durch die wärmere Luft darunter)
   let snowTxt='';
   if(mean!=null){
     const snow = Math.max(0, mean - 250);
-    let rel='';
-    if(elev!=null){
-      const d = elev - snow;
-      if(d>=100) rel = ' · <span class="up">Schnee bis zum Standort</span>';
-      else if(d<=-100) rel = ' · <span class="down">am Standort eher Regen</span>';
-      else rel = ' · <span class="down" style="color:var(--warn)">Schnee-/Regengrenze am Standort</span>';
-    }
-    snowTxt = `<div class="rel" style="margin-top:7px"><span class="muted">Schneefallgrenze</span> <b style="color:var(--ice2)">≈ ${snow.toLocaleString('de-DE')} m</b><span class="dim" style="font-size:11.5px"> (Näherung: Null-Grad −250 m)</span>${rel}</div>`;
+    snowTxt = `<div class="rel" style="margin-top:7px"><span class="muted">Schneefallgrenze (grobe Schätzung)</span> <b style="color:var(--ice2)">≈ ${snow.toLocaleString('de-DE')} m</b><div class="muted" style="font-size:12px">Faustformel: Null-Grad-Grenze −250 m. Nur bei Niederschlag relevant; die tatsächliche Grenze kann deutlich abweichen. Daraus folgt keine sichere Aussage zu Schnee oder Regen am Standort.</div></div>`;
   }
 
   card.innerHTML = `
     <h2><span class="i">❄︎</span> Null-Grad-Grenze <span class="badge">0 °C-Isotherme</span></h2>
-    <div class="zerobig"><span class="v">${mean!=null?mean.toLocaleString('de-DE'):'—'}</span><span class="u">m ü. NN · Konsens</span></div>
+    <div class="zerobig"><span class="v">${mean!=null?mean.toLocaleString('de-DE'):'—'}</span><span class="u">m ü. NN · ${vals.length>=2?'Modellmittel':vals.length?'Einzelwert':'keine Daten'}</span></div>
     <div class="rel">${relTxt}</div>
     ${snowTxt}
     <div class="modellist">${rows||'<span class="muted">Kein Modell liefert hier die Null-Grad-Grenze.</span>'}</div>
-    ${spread!=null?`<div class="spread ${cls}">${stxt}</div>`:''}`;
+    ${vals.length?`<div class="spread ${cls}">${stxt}</div>`:''}`;
   return card;
 }
 
@@ -732,7 +732,7 @@ function renderChart(h, i, elev){
     </svg></div>
     <div class="legend">
       <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice)" stroke-width="3"/></svg> Null-Grad-Grenze (m, links)</span>
-      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice2)" stroke-width="3" stroke-dasharray="4 3"/></svg> Schneefallgrenze (≈ −250 m, gestrichelt)</span>
+      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice2)" stroke-width="3" stroke-dasharray="4 3"/></svg> Schneefallgrenze (grobe Schätzung: −250 m, gestrichelt)</span>
       <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--bronze)" stroke-width="3"/></svg> Temperatur am Standort (°C)</span>
     </div>`;
   return card;
@@ -789,8 +789,6 @@ function renderHours(h, i, elev){
     const head = (k===i?'Jetzt · ':'')+fmtDay(t.split('T')[0])+', '+fmtTime(t)+' Uhr';
     const dirTxt = wd==null ? null : 'aus '+dir16full(wd)+' <small>('+fmt(wd)+'°)</small> '+windArrow(wd,14);
     const gefuehlt = (wc!=null && T!=null && Math.abs(wc-T)>=1) ? fmt(wc)+' °C' : null;
-    // elev: pro Stunde markieren, ob am Standort Schnee oder Regen fällt (nur wenn Niederschlag)
-    const locHint = (elev!=null && snow!=null && pr>0) ? (elev>=snow ? ' <small>· Schnee am Standort</small>' : ' <small>· Regen am Standort</small>') : '';
     return `<div class="hdhead">${ic} ${head}</div>
       <div class="hdsub">${txt}</div>
       <div class="hd">
@@ -804,7 +802,7 @@ function renderHours(h, i, elev){
         ${row('Niederschlag', pr!=null?fmt1(pr)+' mm':null)}
         ${row('Schneefall', (sn!=null&&sn>0)?fmt1(sn)+' cm':null)}
         ${row('Null-Grad-Grenze', fz!=null?Math.round(fz).toLocaleString('de-DE')+' m':null)}
-        ${row('Schneefallgrenze', snow!=null?snow.toLocaleString('de-DE')+' m'+locHint:null)}
+        ${row('Schneefallgrenze (grobe Schätzung)', snow!=null?'≈ '+snow.toLocaleString('de-DE')+' m <small>· Null-Grad −250 m; nur bei Niederschlag relevant, deutliche Abweichungen möglich</small>':null)}
         ${row('Druck NN', pmsl!=null?fmt(pmsl)+' hPa':null)}
       </div>`;
   }

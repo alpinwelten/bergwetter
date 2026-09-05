@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "PWA: Alpines Bergwetter – Modell-Konsens, Null-Grad-Grenze, Wind & Windchill, Gipfelwind (Open-Meteo).",
+  "description": "PWA: Alpines Bergwetter mit Modellvergleich, Null-Grad-Grenze, Wind und Windchill (Open-Meteo).",
   "scripts": {
     "icons": "node tools/generate-icons.mjs",
-    "qr": "python3 tools/make-qr.py"
+    "qr": "python3 tools/make-qr.py",
+    "test": "node --test"
   }
 }

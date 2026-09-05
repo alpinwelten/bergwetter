@@ -1,21 +1,28 @@
 # Bergwetter Alpen
 
-Schlichte, schnelle **PWA** fürs alpine Bergwetter – mit **Modell-Konsens** statt nur einer
-Vorhersage: **Null-Grad-Grenze**, **Wind & Windchill**, **Gipfelwind nach Höhe** und ein
-48‑h‑Verlauf. Optimiert für iPhone/iPad (installierbar, offline lauffähige Hülle).
+Schlichte, schnelle **PWA** fürs alpine Bergwetter mit **Modellvergleich**, **Null-Grad-Grenze**,
+**Wind & Windchill** sowie einem 48-h-Verlauf. Optimiert für iPhone/iPad.
 
 **Live:** https://alpinwelten.github.io/bergwetter/
 
-## Funktionen
+## Funktionen und Grenzen
 
-- **Null-Grad-Grenze** (0 °C-Isotherme) als Konsens mehrerer Modelle – mit Streuungs-Ampel
-  (enge Übereinstimmung → verlässlich, große Spanne → konservativ planen)
-- **Wind & Windchill** mit Kompass, Beaufort und gefühlter Temperatur (JAG/TI-Formel)
-- **Gipfelwind nach Höhe** auf den Druckflächen 850/700/500 hPa (≈ 1500/3000/5500 m, ICON-D2)
-- **Modellvergleich** „jetzt" über alle Modelle (Temp, Wind, Böen, Null-Grad, Wetter)
-- **Verlauf 48 h** (Null-Grad-Grenze + Temperatur) und **6-Tage-Trend**
-- Ortssuche (Geocoding), GPS-Standort und **Favoriten** (lokal gespeichert)
-- Installierbar & offline-fähige App-Hülle (Service Worker)
+- **Null-Grad-Grenze:** Mittelwert verfügbarer konkreter Modelle mit Streuungsanzeige.
+  Best-Match dient nur als Ersatz, wenn kein konkretes Modell einen Wert liefert.
+  Bei einem Einzelwert ist kein Vergleich möglich.
+- **Modellübereinstimmung:** aktuelle Temperaturspanne und Niederschlag in den nächsten
+  zwölf Stunden. Fehlende Daten gelten nicht als trocken. Niederschlagsschwelle:
+  0,2 mm/h oder Niederschlags-Wettercode. Wind und Böen fließen nicht in die Bewertung ein.
+  Übereinstimmung ist keine Garantie für Vorhersagequalität; Modelle sind nicht zwingend unabhängig.
+- **Schneefallgrenze:** grobe Schätzung aus Null-Grad-Grenze minus 250 m.
+  Nur bei Niederschlag relevant; keine sichere Aussage zur Niederschlagsart am Standort.
+- **Wind & Windchill:** 10-m-Wind, Böen, Kompass, Beaufort und gefühlte Temperatur.
+- **48-h-Verlauf** mit antippbaren Stundendetails und **6-Tage-Trend** (Best-Match).
+- **Ortssuche und Favoriten**, lokal gespeichert.
+- **Installierbare App-Hülle:** offline ladbar, Wetterdaten benötigen eine Internetverbindung.
+  Vorhersagen werden nicht offline gespeichert.
+
+GPS-Ortung und Höhenwind auf Druckflächen sind derzeit nicht implementiert.
 
 ## Datenquellen / Modelle
 
@@ -47,6 +54,7 @@ qr-bergwetter*.png               QR-Code für iPhone/iPad
 ```bash
 npm run icons            # PNG-Icons aus icons/icon.svg erzeugen
 npm run qr               # QR-Codes erzeugen
+npm test                # Regressionstests für Modellvergleich und Schätzungen
 python3 -m http.server   # lokal testen -> http://localhost:8000
 ```
 
