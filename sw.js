@@ -3,7 +3,7 @@
    (damit Updates ohne Neuinstallation ankommen), übrige same-origin GETs cache-first.
    Live-Wetterdaten von api.open-meteo.com sind cross-origin und laufen immer direkt
    durchs Netz (kein Cache) – ein neuer Abruf ist kein Nachweis eines neuen Modelllaufs. */
-const VERSION = 'bergwetter-v13';
+const VERSION = 'bergwetter-v14';
 const SHELL = [
   './',
   'index.html',

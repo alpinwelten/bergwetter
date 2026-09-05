@@ -47,7 +47,7 @@
     if(!state?.ensemble){card.innerHTML+='<p>Ensembleprognosen werden geladen …</p>';return card;}
     const d=state.ensemble,h=d.hourly,zone=lastData?.data.timezone||'UTC',now=Date.now(),hour=Math.floor(now/3600000)*3600;
     const start=h.time.findIndex(t=>t===hour+3600),threshold=state.threshold??60;
-    card.innerHTML+=`<p>API-Bezugshöhe: ${Number.isFinite(d.elevation)?Math.round(d.elevation)+' m':'unbekannt'} · Abgerufen ${formatInstant(state.ensembleLoaded,zone)} · Abrufalter ${Math.max(0,Math.floor((now-state.ensembleLoaded)/60000))} min<br>Modelllauf der angezeigten Mitglieder: unbekannt.</p><label for="gust-threshold">Böenschwelle für die Auswertung</label><select id="gust-threshold" class="data-select">${[30,40,50,60,70,80,100].map(t=>`<option value="${t}"${t===threshold?' selected':''}>≥ ${t} km/h</option>`).join('')}</select><p>Die Schwelle ist eine Auswertungshilfe, keine Freigabe- oder Sicherheitsgrenze.</p>`;
+    card.innerHTML+=`<p>API-Bezugshöhe: ${Number.isFinite(d.elevation)?Math.round(d.elevation)+' m':'unbekannt'} · Abgerufen ${formatInstant(state.ensembleLoaded,zone)} · Abrufalter ${Math.max(0,Math.floor((now-state.ensembleLoaded)/60000))} min<br>Modelllauf laut Anbieter-Metadaten (ICON-D2-EPS): ${escapeHTML(modelRunText(state.ensembleMeta,now,zone))}. Die Ensembleantwort selbst enthält keine Laufkennung; die Zuordnung ist daher nur plausibel, nicht bestätigt.</p><label for="gust-threshold">Böenschwelle für die Auswertung</label><select id="gust-threshold" class="data-select">${[30,40,50,60,70,80,100].map(t=>`<option value="${t}"${t===threshold?' selected':''}>≥ ${t} km/h</option>`).join('')}</select><p>Die Schwelle ist eine Auswertungshilfe, keine Freigabe- oder Sicherheitsgrenze.</p>`;
     if(start<0){card.innerHTML+='<p>Kein anschließender Prognosezeitraum vorhanden.</p>';}
     else{
       const wind=A().windowSummary(h,'wind_gusts_10m',start,12,20,threshold);
@@ -83,7 +83,7 @@
         catch(e){state.catalog={stations:[],failed:['Stationsdienste']};renderStation(state,place);}
       })(),
       (async()=>{
-        try{state.ensemble=await A().ensemble(place);state.ensembleLoaded=state.ensemble.fetchedAt;}catch(e){state.ensembleError=e.message;}
+        try{const [ens,meta]=await Promise.all([A().ensemble(place),A().ensembleMeta()]);state.ensemble=ens;state.ensembleMeta=meta;state.ensembleLoaded=ens.fetchedAt;}catch(e){state.ensembleError=e.message;}
         if(lastData===snapshot)replace('ensemble',ensembleCard(state,place));
       })()
     ]);
