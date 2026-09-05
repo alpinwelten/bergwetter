@@ -202,6 +202,9 @@
   .target-grid label{display:flex;flex-direction:column;gap:5px;min-width:0}
   .target-grid input{box-sizing:border-box;width:100%;min-width:0;font:inherit;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
   .reference{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+  details.card>summary{padding:0;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+  details.card[open]>summary{margin-bottom:6px}
+  .reference ul{margin:4px 0;padding-left:18px} .reference li{margin:5px 0;color:var(--muted)}
   .reference p{margin:8px 0;color:var(--muted)}
   .reference table{width:100%;border-collapse:collapse;font-size:11px}
   .reference th,.reference td{padding:7px 3px;border-bottom:1px solid var(--line);text-align:left}
@@ -272,11 +275,23 @@
     <div class="status" id="status">Suche oben einen Ort (z. B. Zermatt, Sölden).</div>
   </main>
 
+  <details class="card reference" id="methodik">
+    <summary>Methodik &amp; Grenzen</summary>
+    <ul>
+      <li><b>Modellübereinstimmung:</b> Temperatur der aktuellen Stunde und Niederschlag der nächsten 12 h (ab 0,2 mm/h oder Niederschlags-Wettercode). Wind und Böen sind nicht Teil der Bewertung. Übereinstimmung ist keine Garantie für die Vorhersage.</li>
+      <li><b>Null-Grad-Grenze:</b> Mittel der Modelle mit Wert, Best-Match nur als Ersatz. Schneefallgrenze = Null-Grad-Grenze −250 m; nur bei Niederschlag relevant, die tatsächliche Grenze kann deutlich abweichen.</li>
+      <li><b>Höhe:</b> Die Zielhöhe steuert das statistische Downscaling, verschiebt den Zielpunkt nicht und bildet Gratbeschleunigung, Föhn oder Inversionen nicht zuverlässig ab. Alle Werte gelten für die API-Bezugshöhe.</li>
+      <li><b>Datenstand:</b> Abrufzeit ist nicht Modelllauf. Modellläufe stammen aus Anbieter-Metadaten und können bis etwa zehn Minuten versetzt sein.</li>
+      <li><b>Stationen:</b> Auswahl nach Entfernung und Höhendifferenz, keine geprüfte Repräsentativität. Prognose gilt für den Zielpunkt, Messung für die Station, keine Höhenübertragung. TAWES liefert ungeprüfte Rohdaten, SwissMetNet zeitnahe Werte mit möglichen Nachkorrekturen (Böenspitze 1-s-Maximum). Fehlende Werte sind keine Nullmessungen, „veraltet“ ab 30 min.</li>
+      <li><b>Ensemble:</b> ICON-D2-EPS, 20 Mitglieder, etwa 2 km Raster. Anteile sind rohe Mitgliederzahlen, keine kalibrierten Wahrscheinlichkeiten; ohne 20 gültige Mitglieder kein Prozentwert. P10–P90 = mittlere 80 % der Modellverteilung. Der Lauf stammt aus Metadaten, die Antwort trägt keine Laufkennung. Die Böenschwelle ist eine Auswertungshilfe, keine Sicherheitsgrenze.</li>
+      <li><b>Offline:</b> nur die App-Hülle, keine gespeicherten Prognosen. Keine amtliche Warnung.</li>
+    </ul>
+  </details>
+
   <div class="footnote">
-    Daten: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> — bündelt ICON-D2 (DWD), AROME (Météo-France),
-    ICON-CH1 (MeteoSwiss) &amp; AROME (GeoSphere Austria / ehem. ZAMG); Ensemble ICON-D2-EPS (DWD).
-    Stationsmessungen: GeoSphere Austria TAWES &amp; MeteoSchweiz SwissMetNet (CC BY 4.0).<br>
-    Null-Grad-Grenze = Höhe der 0 °C-Isotherme. Windchill nach JAG/TI-Formel (Environment Canada/NWS). Keine amtliche Warnung.
+    Daten: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (ICON-D2 · AROME-HD · ICON-CH1 · AROME-AT · ICON-D2-EPS) ·
+    GeoSphere Austria · MeteoSchweiz · CC BY 4.0<br>
+    Windchill nach JAG/TI. Keine amtliche Warnung.
   </div>
 </div>
 
@@ -369,6 +384,10 @@ function localISO(epoch, zone){
   const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(epoch*1000)).map(p=>[p.type,p.value]));
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
+function formatShort(ms, zone='UTC'){
+  if(!Number.isFinite(ms)) return 'unbekannt';
+  return new Intl.DateTimeFormat('de-DE',{timeZone:zone,weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(ms)).replace(/[.,]+\s*/,' ');
+}
 function formatInstant(ms, zone='UTC'){
   if(!Number.isFinite(ms)) return 'unbekannt';
   return new Intl.DateTimeFormat('de-DE',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',timeZoneName:'shortOffset'}).format(new Date(ms))+(zone==='UTC'?' UTC':` (${zone})`);
@@ -411,7 +430,7 @@ function heightReference(o,data){
   const source=({manual:'manuell',geocoding:'Ortssuche',preset:'Schnellauswahl',saved:'gespeicherter Ort'})[o.elevationSource] || 'gespeicherter Ort';
   return (requested===null?'Zielhöhe: automatisch aus Geländemodell':`Zielhöhe: ${Math.round(requested)} m (${source})`)
     +` · API-Bezugshöhe: ${api===null?'unbekannt':Math.round(api)+' m'}`
-    +(requested!==null&&api!==null&&Math.abs(requested-api)>=1?' · Abweichender Höhenbezug – Werte beziehen sich auf die API-Bezugshöhe.':'');
+    +(requested!==null&&api!==null&&Math.abs(requested-api)>=1?' · abweichend, Werte gelten für die API-Bezugshöhe':'');
 }
 function coverage(h,variable,id,start,hours){
   let count=0,continuous=true,last=null;
@@ -441,12 +460,12 @@ function modelRunText(meta,now=Date.now(),zone='UTC'){
   const init=meta?.last_run_initialisation_time,available=meta?.last_run_availability_time,interval=meta?.update_interval_seconds;
   if(!Number.isFinite(init)||init<=0||init*1000>now||!Number.isFinite(available)||available<init||available*1000>now) return 'Modelllauf unbekannt';
   const age=Math.floor((now-init*1000)/60000);
-  return `${formatInstant(init*1000,zone)} · Alter ${Math.floor(age/60)} h ${age%60} min`
-    +(now-available*1000<600000?' · Bereitstellung läuft möglicherweise noch':'')
-    +(Number.isFinite(interval)&&interval>0&&now-available*1000>interval*1000+20*60000?' · Aktualisierung möglicherweise verzögert':'');
+  return `${formatShort(init*1000,zone)} · ${Math.floor(age/60)} h ${age%60} min alt`
+    +(now-available*1000<600000?' · wird noch bereitgestellt':'')
+    +(Number.isFinite(interval)&&interval>0&&now-available*1000>interval*1000+20*60000?' · Aktualisierung verzögert':'');
 }
 function renderDataReference(data,o,loaded,meta,now=Date.now()){
-  const card=el('div','card reference');card.id='reference';
+  const card=el('details','card reference');card.id='reference';
   const h=data.hourly,i=currentIndex(h,now),zone=data.timezone||'UTC';
   const fields=[['temperature_2m','Temperatur'],['precipitation','Niederschlag'],['wind_speed_10m','Wind'],['wind_gusts_10m','Böen'],['freezing_level_height','Null-Grad-Grenze']];
   const rows=fields.map(([v,label])=>{
@@ -457,19 +476,16 @@ function renderDataReference(data,o,loaded,meta,now=Date.now()){
   const details=MODELS.map(m=>{
     const values=fields.map(([v,label])=>{
       const a=coverage(h,v,m.id,0,h.time.length);
-      return `${label}: ${a.count}/${h.time.length} h${a.last===null?'':', letzter Wert '+formatInstant(h.epoch[a.last]*1000,zone)}`;
+      return `${label}: ${a.count}/${h.time.length} h${a.last===null?'':', letzter Wert '+formatShort(h.epoch[a.last]*1000,zone)}`;
     }).join('<br>');
-    return `<details><summary>${m.nm}${m.ref?' · automatische Referenz':''}</summary><p>${values}</p><p>${m.ref?'Modelllauf unbekannt – Best-Match kombiniert Modelle.':'Zuletzt verfügbarer Lauf laut Anbieter: '+modelRunText(meta?.[m.id],now,zone)}</p></details>`;
+    return `<details><summary>${m.nm}${m.ref?' · automatische Referenz':''}</summary><p>${values}</p><p>${m.ref?'Best-Match kombiniert Modelle, kein eigener Lauf.':'Lauf: '+modelRunText(meta?.[m.id],now,zone)}</p></details>`;
   }).join('');
-  card.innerHTML=`<h2>Höhenbezug &amp; Datenstand</h2>
-    <p>${escapeHTML(heightReference(o,data))}</p>
-    <p>Zielpunkt: ${o.lat.toFixed(5)}, ${o.lon.toFixed(5)} (WGS84). Die Höhe verschiebt den Zielpunkt nicht. Höhenanpassung bildet lokale Gratbeschleunigung, Föhn oder Inversionen nicht zuverlässig ab. API-Bezugshöhe ist keine Angabe der ursprünglichen Modellorografie.</p>
-    <p><b>Abgerufen:</b> ${formatInstant(loaded,zone)}<br><b>Gültig für:</b> ${i<0?'Keine Prognose für die aktuelle Stunde':formatInstant(h.epoch[i]*1000,zone)}<br><b>Abrufalter:</b> ${Math.max(0,Math.floor((now-loaded)/60000))} min</p>
-    <details><summary>Verfügbare Modelle und Modellläufe</summary>
-    <table><caption>Konkrete Modelle mit Daten; Best-Match separat</caption><thead><tr><th>Variable</th><th>Aktuelle Stunde</th><th>12 h vollständig*</th></tr></thead><tbody>${rows}</tbody></table>
-    <p>* Zwölf Stunden ab der aktuellen Prognosestunde. Niederschlag: Stundensummen, jeweils für die vorangegangene Stunde. Gezählt werden endliche Werte; das ist keine Qualitätsbewertung und kein Nachweis unabhängiger Modelle.</p>
-    ${details}<p>Modellläufe sind Anbieter-Metadaten, kein Nachweis des Laufs jedes angezeigten Wertes. Fehlende Metadaten verhindern die Wetteranzeige nicht. Aktualisierungen können zwischen Servern bis etwa zehn Minuten versetzt sein. Metadaten abgerufen: ${formatInstant(metadataFetchedAt||null,zone)}.</p>
-    <a href="https://open-meteo.com/en/docs/model-updates" target="_blank" rel="noopener">Modellstatus bei Open-Meteo</a></details>`;
+  const age=Math.max(0,Math.floor((now-loaded)/60000));
+  card.innerHTML=`<summary>Datenstand &amp; Modelle · Abruf ${formatShort(loaded,zone)}${age?' (vor '+age+' min)':''}</summary>
+    <p>${escapeHTML(heightReference(o,data))}<br>Zielpunkt ${o.lat.toFixed(5)}, ${o.lon.toFixed(5)} (WGS84) · Zeitzone ${escapeHTML(zone)}</p>
+    <p><b>Abgerufen:</b> ${formatShort(loaded,zone)} · <b>Gültig für:</b> ${i<0?'keine Prognose für die aktuelle Stunde':formatShort(h.epoch[i]*1000,zone)}</p>
+    <table><caption>Modelle mit Daten, Best-Match separat</caption><thead><tr><th>Variable</th><th>Jetzt</th><th>12 h vollständig</th></tr></thead><tbody>${rows}</tbody></table>
+    ${details}<p>Metadaten abgerufen ${formatShort(metadataFetchedAt||null,zone)} · <a href="https://open-meteo.com/en/docs/model-updates" target="_blank" rel="noopener">Modellstatus bei Open-Meteo</a></p>`;
   return card;
 }
 
@@ -584,9 +600,10 @@ function refreshReference(){
     // Keep expanded explanations open during age updates.
     const opened=[...old.querySelectorAll('details')].map(e=>e.open);
     next.querySelectorAll('details').forEach((e,i)=>e.open=!!opened[i]);
+    next.open=old.open;
     old.replaceWith(next);
   }
-  $('#datastatus').textContent=`Abgerufen ${formatInstant(loaded,data.timezone||'UTC')}`;
+  $('#datastatus').textContent=`Abgerufen ${formatShort(loaded,data.timezone||'UTC')} · ${data.timezone||'UTC'}`;
 }
 $('#target-form').addEventListener('submit',e=>{
   e.preventDefault();
@@ -627,7 +644,7 @@ function render(data, o, loaded=Date.now(), meta=null){
   const hero = el('div','card hero');
   hero.innerHTML = `
     <div class="place">${escapeHTML(o.name)}${o.country?' <span class="muted" style="font-size:13px;font-weight:400">· '+escapeHTML(o.country)+'</span>':''}</div>
-    <div class="when">${elev!=null?elev+' m API-Bezugshöhe':'Höhenbezug unbekannt'} · ${current<0?'Keine aktuelle Prognosestunde':formatInstant(h.epoch[i]*1000,data.timezone||'UTC')} · ${txt}</div>
+    <div class="when">${elev!=null?elev+' m':'Höhe unbekannt'} · ${current<0?'Keine aktuelle Prognosestunde':formatShort(h.epoch[i]*1000,data.timezone||'UTC')} · ${txt}</div>
     <div class="heromain">
       <div class="wx">${icon}</div>
       <div class="temp">${fmt(T)}°</div>
@@ -670,7 +687,7 @@ function render(data, o, loaded=Date.now(), meta=null){
   m.appendChild(favBtn);
   $('#favbtn').onclick = ()=>{ toggleFav(o); loadWeather(o); };
 
-  $('#datastatus').textContent='Abgerufen '+formatInstant(loaded,data.timezone||'UTC');
+  $('#datastatus').textContent=`Abgerufen ${formatShort(loaded,data.timezone||'UTC')} · ${data.timezone||'UTC'}`;
 }
 
 // Kleiner rotierender Windpfeil — zeigt in die Richtung, WOHIN der Wind weht (Strömung). Wind aus SW → Pfeil nach NO.
@@ -696,11 +713,9 @@ function renderReliability(h, i){
     return {mo,T,wet:wet?true:complete?false:null};
   }).filter(r=>r.T!=null);
   const n=rows.length, card=el('div','card');
-  const scope='Temperatur: aktuelle Stunde · Niederschlag: 12-Stunden-Fenster ab der aktuellen vollen Stunde (ab 0,2 mm/h oder Niederschlags-Wettercode). Wind und Böen werden hier nicht bewertet. Modellübereinstimmung ist keine Garantie für die Vorhersage.';
   if(n<2){
     card.innerHTML = `<h2><span class="i">◉</span> Modellübereinstimmung</h2>
-      <div class="reldetail muted">${n===0?'Kein Modell liefert':'Nur ein Modell liefert'} aktuelle Temperaturdaten – keine Vergleichsbasis.</div>
-      <div class="muted" style="font-size:12px;margin-top:7px">${scope}</div>`;
+      <div class="reldetail muted">${n===0?'Kein Modell liefert':'Nur ein Modell liefert'} aktuelle Temperaturdaten, keine Vergleichsbasis.</div>`;
     return card;
   }
   const temps=rows.map(r=>r.T), tSpread=Math.max(...temps)-Math.min(...temps);
@@ -723,7 +738,6 @@ function renderReliability(h, i){
   card.innerHTML = `<h2><span class="i" style="color:${col}">◉</span> Modellübereinstimmung</h2>
     <div class="relhead"><span class="reldot" style="background:${col}"></span><b style="color:${col}">${sym} ${head}</b></div>
     <div class="reldetail">${detail}</div>
-    <div class="muted" style="font-size:12px;margin-top:7px">${scope}</div>
     <div class="muted" style="font-size:11.5px;margin-top:7px">Verglichen: ${rows.map(r=>r.mo.nm).join(' · ')}</div>`;
   return card;
 }
@@ -750,7 +764,7 @@ function renderFreezing(h, i, elev){
   if(mean!=null && elev!=null){
     const diff = mean - elev;
     if(diff>=0) relTxt = `<span class="up">▲ ${diff} m über dem Standort</span>`;
-    else relTxt = `<span class="down">▼ ${Math.abs(diff)} m unter dem Standort — Frost am Ort möglich</span>`;
+    else relTxt = `<span class="down">▼ ${Math.abs(diff)} m unter dem Standort · Frost am Ort möglich</span>`;
   }
   // Skalierung der Balken
   const lo = Math.max(0,(mn??0)-300), hiv=(mx??3000)+300, span=Math.max(1,hiv-lo);
@@ -765,18 +779,18 @@ function renderFreezing(h, i, elev){
       <span class="vv">${v} m</span></div>`;
   });
 
-  let cls='med', stxt='Nur ein Modellwert verfügbar – keine Vergleichsbasis.';
+  let cls='med', stxt='Nur ein Modellwert, keine Vergleichsbasis.';
   if(spread!=null){
-    if(spread>500){cls='wide';stxt='Modelle laufen stark auseinander ('+spread+' m Spanne) — Prognose unsicher, konservativ planen.';}
-    else if(spread>200){cls='med';stxt='Mäßige Streuung ('+spread+' m) zwischen den Modellen.';}
-    else {cls='tight';stxt='Enge Übereinstimmung ('+spread+' m Spanne) – keine Garantie für die Vorhersage.';}
+    if(spread>500){cls='wide';stxt='Modelle stark uneinig ('+spread+' m Spanne) · konservativ planen';}
+    else if(spread>200){cls='med';stxt='Mäßige Streuung ('+spread+' m Spanne)';}
+    else {cls='tight';stxt='Enge Übereinstimmung ('+spread+' m Spanne)';}
   }
 
   // Schneefallgrenze ≈ Null-Grad-Grenze − 250 m (Näherung; Schnee schmilzt beim Fall durch die wärmere Luft darunter)
   let snowTxt='';
   if(mean!=null){
     const snow = Math.max(0, mean - 250);
-    snowTxt = `<div class="rel" style="margin-top:7px"><span class="muted">Schneefallgrenze (grobe Schätzung)</span> <b style="color:var(--ice2)">≈ ${snow.toLocaleString('de-DE')} m</b><div class="muted" style="font-size:12px">Faustformel: Null-Grad-Grenze −250 m. Nur bei Niederschlag relevant; die tatsächliche Grenze kann deutlich abweichen. Daraus folgt keine sichere Aussage zu Schnee oder Regen am Standort.</div></div>`;
+    snowTxt = `<div class="rel" style="margin-top:7px"><span class="muted">Schneefallgrenze</span> <b style="color:var(--ice2)">≈ ${snow.toLocaleString('de-DE')} m</b> <span class="muted" style="font-size:12px">(Schätzung, −250 m)</span></div>`;
   }
 
   card.innerHTML = `
@@ -893,7 +907,7 @@ function renderChart(h, i, elev){
     </svg></div>
     <div class="legend">
       <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice)" stroke-width="3"/></svg> Null-Grad-Grenze (m, links)</span>
-      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice2)" stroke-width="3" stroke-dasharray="4 3"/></svg> Schneefallgrenze (grobe Schätzung: −250 m, gestrichelt)</span>
+      <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--ice2)" stroke-width="3" stroke-dasharray="4 3"/></svg> Schneefallgrenze (Schätzung −250 m)</span>
       <span><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--bronze)" stroke-width="3"/></svg> Temperatur am Standort (°C)</span>
     </div>`;
   return card;
@@ -947,7 +961,7 @@ function renderHours(h, i, elev){
     const wc=windchill(T,ws);
     const snow = fz!=null ? Math.max(0, Math.round((fz-250)/10)*10) : null;  // Schneefallgrenze ≈ Null-Grad −250 m
     const t=h.time[k];
-    const head = h.epoch ? formatInstant(h.epoch[k]*1000,lastData?.data.timezone||'UTC') : fmtDay(t.split('T')[0])+', '+fmtTime(t)+' Uhr';
+    const head = h.epoch ? formatShort(h.epoch[k]*1000,lastData?.data.timezone||'UTC') : fmtDay(t.split('T')[0])+', '+fmtTime(t)+' Uhr';
     const dirTxt = wd==null ? null : 'aus '+dir16full(wd)+' <small>('+fmt(wd)+'°)</small> '+windArrow(wd,14);
     const gefuehlt = (wc!=null && T!=null && Math.abs(wc-T)>=1) ? fmt(wc)+' °C' : null;
     return `<div class="hdhead">${ic} ${head}</div>

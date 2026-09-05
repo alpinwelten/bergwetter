@@ -44,7 +44,7 @@ test('wet versus dry remains a disagreement',()=>{
 test('snow estimate cannot assert snow at a dry location',()=>{
   const out=render('renderFreezing',hourly({icon_d2:{freezing_level_height:2000,precipitation:0}}),2500);
   assert.doesNotMatch(out,/Schnee bis zum Standort|am Standort eher Regen/);
-  assert.match(out,/grobe Schätzung/i);
+  assert.match(out,/Schätzung/i);
 });
 test('zero freezing models show missing data without agreement',()=>{
   const out=render('renderFreezing',hourly({}));

@@ -24,9 +24,13 @@ Schlichte, schnelle **PWA** fürs alpine Bergwetter mit **Modellvergleich**, **N
   angefragt; leere Höhe nutzt Open-Meteos Geländemodell. Zielhöhe, Herkunft und
   zurückgegebene API-Bezugshöhe werden getrennt angezeigt. Abweichungen ab 1 m
   werden genannt (technischer Vergleich, keine Genauigkeitstoleranz).
+- **Übersichtlichkeit:** Die Karten zeigen nur Daten. Methodische Vorbehalte und
+  Grenzen stehen gesammelt im eingeklappten Abschnitt „Methodik & Grenzen“ am Seitenende;
+  die Datenstand-Karte ist eingeklappt. Zeiten erscheinen kurz als Wochentag und Uhrzeit,
+  die Zeitzone steht einmal im Kopf.
 - **Datenstand:** Abrufzeit, Abrufalter, Gültigkeitszeit und zuletzt verfügbarer
-  Modelllauf getrennt. Zeitrechnung intern in UTC-Unixsekunden; Darstellung mit
-  Datum, Ortszeitzone und UTC-Offset, auch bei Sommerzeitwechsel. Anzeigealter und
+  Modelllauf getrennt. Zeitrechnung intern in UTC-Unixsekunden; Darstellung als
+  Wochentag und Uhrzeit in der Ortszeitzone, auch bei Sommerzeitwechsel. Anzeigealter und
   aktuelle Prognosestunde werden minütlich aktualisiert, ohne Wetter neu abzurufen.
 - **Datenabdeckung:** endliche Werte je Variable in der aktuellen Stunde und
   vollständige zwölf Stunden ab dieser Stunde; Best-Match zählt separat. Details

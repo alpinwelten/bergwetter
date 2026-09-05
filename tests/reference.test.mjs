@@ -60,7 +60,7 @@ test('height reference keeps requested and API height separate and reports misma
 test('metadata never converts retrieval time or generation duration into model age',()=>{
   const out=c.modelRunText(null,Date.parse('2026-09-05T10:00Z'));
   assert.match(out,/unbekannt/i);
-  assert.match(c.modelRunText({last_run_initialisation_time:1788577200,last_run_availability_time:1788582359,update_interval_seconds:10800},Date.parse('2026-09-05T10:00Z')),/UTC/);
+  assert.match(c.modelRunText({last_run_initialisation_time:1788577200,last_run_availability_time:1788582359,update_interval_seconds:10800},Date.parse('2026-09-05T10:00Z')),/\d{2}:\d{2} · 7 h 0 min alt/);
   assert.match(c.modelRunText({last_run_initialisation_time:9999999999},Date.now()),/unbekannt/i);
 });
 test('metadata failure does not reject the entire metadata batch',async()=>{
