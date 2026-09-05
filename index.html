@@ -196,6 +196,23 @@
     background:linear-gradient(90deg,var(--ice),#E5C9AB,var(--bronze))}
   .day .wind{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
 
+  .target-editor{margin-top:12px;font-size:13px;color:var(--muted)}
+  summary{cursor:pointer;padding:10px 0;font-weight:600}
+  .target-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .target-grid label{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .target-grid input{box-sizing:border-box;width:100%;min-width:0;font:inherit;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
+  .reference{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+  .reference p{margin:8px 0;color:var(--muted)}
+  .reference table{width:100%;border-collapse:collapse;font-size:11px}
+  .reference th,.reference td{padding:7px 3px;border-bottom:1px solid var(--line);text-align:left}
+  .reference caption{text-align:left;padding:6px 0}
+  .data-select{box-sizing:border-box;width:100%;padding:10px;margin:8px 0;font:inherit;font-size:16px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px}
+  .measurement-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .measurement-grid b{font-size:18px;font-weight:600}
+  .table-scroll{overflow:auto;max-height:480px}
+  .table-scroll table{min-width:360px}
+  .reference a{color:var(--ice)}
+  #target-error{color:var(--bad);margin:8px 0}
   .footnote{font-size:11.5px;color:var(--dim);text-align:center;margin-top:8px;line-height:1.6}
   .footnote a{color:var(--muted)}
   .status{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px}
@@ -236,6 +253,19 @@
       <div id="results"></div>
     </div>
     <div class="chips" id="chips"></div>
+    <details class="target-editor" id="target-editor"><summary>Zielpunkt und Höhe anpassen</summary>
+      <form id="target-form">
+        <div class="target-grid">
+          <label>Name<input id="target-name" maxlength="100" value="Eigener Zielpunkt"></label>
+          <label>Zielhöhe (m über Meer)<input id="target-height" type="number" min="-500" max="9000" step="any" placeholder="automatisch"></label>
+          <label>Breite (WGS84)<input id="target-lat" type="number" min="-90" max="90" step="any" required></label>
+          <label>Länge (WGS84)<input id="target-lon" type="number" min="-180" max="180" step="any" required></label>
+        </div>
+        <p>Koordinaten des tatsächlichen Ziels verwenden. Eine andere Höhe am Talort ersetzt keinen Gipfelpunkt. Leere Höhe: automatisch aus dem Geländemodell.</p>
+        <div id="target-error" role="alert"></div>
+        <button class="btn" type="submit">Prognose für diesen Zielpunkt laden</button>
+      </form>
+    </details>
   </header>
 
   <main id="main">
@@ -249,6 +279,8 @@
   </div>
 </div>
 
+<script src="alpine-data.js"></script>
+<script src="alpine-ui.js"></script>
 <script>
 "use strict";
 
@@ -261,10 +293,10 @@
 // hasFreezing: liefert das Modell freezing_level_height über Open-Meteo?
 const MODELS = [
   {id:'best_match',               nm:'Best-Match', org:'Open-Meteo (autom. bestes)', res:'auto',    col:'var(--best)',   hasFreezing:true,  ref:true},
-  {id:'icon_d2',                  nm:'ICON-D2',    org:'DWD Deutschland',             res:'2,2 km',  col:'var(--icon-d2)',hasFreezing:true},
-  {id:'arome_france_hd',          nm:'AROME-HD',   org:'Météo-France',                res:'1,3 km',  col:'var(--arome)',  hasFreezing:false},
-  {id:'meteoswiss_icon_ch1',      nm:'ICON-CH1',   org:'MeteoSwiss',                  res:'1 km',    col:'var(--ch1)',    hasFreezing:true},
-  {id:'geosphere_arome_austria',  nm:'AROME-AT',   org:'GeoSphere Austria (ZAMG)',    res:'2,5 km',  col:'var(--zamg)',   hasFreezing:false},
+  {id:'icon_d2',                  nm:'ICON-D2',    org:'DWD Deutschland',             res:'2,2 km',  col:'var(--icon-d2)',hasFreezing:true, meta:'dwd_icon_d2'},
+  {id:'arome_france_hd',          nm:'AROME-HD',   org:'Météo-France',                res:'1,3 km',  col:'var(--arome)',  hasFreezing:false, meta:'meteofrance_arome_france_hd'},
+  {id:'meteoswiss_icon_ch1',      nm:'ICON-CH1',   org:'MeteoSwiss',                  res:'1 km',    col:'var(--ch1)',    hasFreezing:true, meta:'meteoswiss_icon_ch1'},
+  {id:'geosphere_arome_austria',  nm:'AROME-AT',   org:'GeoSphere Austria (ZAMG)',    res:'2,5 km',  col:'var(--zamg)',   hasFreezing:false, meta:'geosphere_arome_austria'},
 ];
 const HOURLY_VARS = ['temperature_2m','relative_humidity_2m',
   'wind_speed_10m','wind_gusts_10m','wind_direction_10m','freezing_level_height',
@@ -327,16 +359,24 @@ const BFT_TXT = ['Windstille','leiser Zug','leichte Brise','schwache Brise','mä
   'frische Brise','starker Wind','steifer Wind','stürmischer Wind','Sturm','schwerer Sturm','orkanartig','Orkan'];
 function beaufort(kmh){ if(kmh==null)return null; let b=0; for(let i=0;i<BFT.length;i++) if(kmh>=BFT[i]) b=i+1; return b; }
 
-// Aktueller Stundenindex (hourly.time ist in Ortszeit wegen timezone=auto)
-function nowIndex(times, utcOffsetSec){
-  const localNow = Date.now() + utcOffsetSec*1000;
-  let best=0, bd=Infinity;
-  for(let i=0;i<times.length;i++){
-    const t = Date.parse(times[i]+'Z');
-    const d = Math.abs(t-localNow);
-    if(d<bd){bd=d;best=i;}
-  }
-  return best;
+// UTC ist die interne Zeitbasis; lokale ISO-Texte dienen nur der Anzeige.
+function currentIndex(h, now=Date.now()){
+  const ts=h.epoch || [];
+  return ts.findIndex(t=>Number.isFinite(t) && now>=t*1000 && now<(t+3600)*1000);
+}
+function localISO(epoch, zone){
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(epoch*1000)).map(p=>[p.type,p.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+function formatInstant(ms, zone='UTC'){
+  if(!Number.isFinite(ms)) return 'unbekannt';
+  return new Intl.DateTimeFormat('de-DE',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',timeZoneName:'shortOffset'}).format(new Date(ms))+(zone==='UTC'?' UTC':` (${zone})`);
+}
+function prepareForecast(data){
+  if(!data.hourly?.time?.length || !data.hourly.time.every(Number.isFinite)) throw Error('Keine gültige Prognose-Zeitachse');
+  const zone=data.timezone || 'UTC';
+  return {...data,hourly:{...data.hourly,epoch:[...data.hourly.time],time:data.hourly.time.map(t=>localISO(t,zone))},
+    daily:data.daily?{...data.daily,time:data.daily.time.map(t=>localISO(t,zone).slice(0,10))}:null};
 }
 function fmtTime(iso){ const p=iso.split('T'); return p[1]; }
 function fmtDay(iso){ const d=new Date(iso+'T00:00:00'); return ['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()]; }
@@ -346,21 +386,105 @@ function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return d.getDate()+'.'
 function get(h, variable, modelId, idx){
   const key = variable + '_' + modelId;
   const a = h[key];
-  return (a && a[idx]!=null) ? a[idx] : null;
+  return Number.isFinite(a?.[idx]) ? a[idx] : null;
+}
+
+// --- Höhenbezug, Abdeckung und Modell-Metadaten -------------------------------
+function escapeHTML(value){ return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function parseTarget(latText, lonText, heightText){
+  const read=t=>String(t).trim()===''?null:Number(String(t).trim().replace(',','.'));
+  const lat=read(latText),lon=read(lonText),elevation=read(heightText);
+  if(!Number.isFinite(lat)||Math.abs(lat)>90||!Number.isFinite(lon)||Math.abs(lon)>180) throw Error('Bitte gültige WGS84-Koordinaten eingeben (Breite −90 bis 90, Länge −180 bis 180).');
+  if(elevation!==null && (!Number.isFinite(elevation)||elevation< -500||elevation>9000)) throw Error('Bitte eine Höhe zwischen −500 und 9000 m eingeben oder das Feld leer lassen.');
+  return {lat,lon,elevation,elevationSource:elevation===null?'auto':'manual'};
+}
+function forecastURL(o){
+  const params=new URLSearchParams({latitude:o.lat,longitude:o.lon,timezone:'auto',timeformat:'unixtime',
+    hourly:HOURLY_VARS.join(','),daily:'temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,weather_code',
+    models:MODELS.map(m=>m.id).join(','),forecast_days:6});
+  if(Number.isFinite(o.elevation)) params.set('elevation',o.elevation);
+  return 'https://api.open-meteo.com/v1/forecast?'+params;
+}
+function heightReference(o,data){
+  const requested=Number.isFinite(o.elevation)?o.elevation:null, api=Number.isFinite(data.elevation)?data.elevation:null;
+  const source=({manual:'manuell',geocoding:'Ortssuche',preset:'Schnellauswahl',saved:'gespeicherter Ort'})[o.elevationSource] || 'gespeicherter Ort';
+  return (requested===null?'Zielhöhe: automatisch aus Geländemodell':`Zielhöhe: ${Math.round(requested)} m (${source})`)
+    +` · API-Bezugshöhe: ${api===null?'unbekannt':Math.round(api)+' m'}`
+    +(requested!==null&&api!==null&&Math.abs(requested-api)>=1?' · Abweichender Höhenbezug – Werte beziehen sich auf die API-Bezugshöhe.':'');
+}
+function coverage(h,variable,id,start,hours){
+  let count=0,continuous=true,last=null;
+  for(let k=start;k<start+hours;k++){
+    if(k<0 || k>=h.time.length){continuous=false;continue;}
+    if(h.epoch && h.epoch[k]!==h.epoch[start]+(k-start)*3600) continuous=false;
+    if(get(h,variable,id,k)!==null){count++;last=k;}
+  }
+  return {count,complete:count===hours&&continuous,last};
+}
+function availableModels(h,variable,i){ return MODELS.filter(m=>!m.ref && get(h,variable,m.id,i)!==null); }
+async function fetchJSON(url,timeout=15000){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
+  try{const r=await fetch(url,{signal:controller.signal});if(!r.ok)throw Error('API '+r.status);return await r.json();}
+  finally{clearTimeout(timer);}
+}
+let metadataCache=null, metadataFetchedAt=0;
+async function loadModelMetadata(){
+  if(metadataCache && Date.now()-metadataFetchedAt<10*60*1000)return metadataCache;
+  const entries=await Promise.all(MODELS.filter(m=>m.meta).map(async m=>{
+    try{return [m.id,await fetchJSON(`https://api.open-meteo.com/data/${m.meta}/static/meta.json`,6000)];}
+    catch{return [m.id,null];}
+  }));
+  metadataCache=Object.fromEntries(entries);metadataFetchedAt=Date.now();return metadataCache;
+}
+function modelRunText(meta,now=Date.now()){
+  const init=meta?.last_run_initialisation_time,available=meta?.last_run_availability_time,interval=meta?.update_interval_seconds;
+  if(!Number.isFinite(init)||init<=0||init*1000>now||!Number.isFinite(available)||available<init||available*1000>now) return 'Modelllauf unbekannt';
+  const age=Math.floor((now-init*1000)/60000);
+  return `${formatInstant(init*1000)} · Alter ${Math.floor(age/60)} h ${age%60} min`
+    +(now-available*1000<600000?' · Bereitstellung läuft möglicherweise noch':'')
+    +(Number.isFinite(interval)&&interval>0&&now-available*1000>interval*1000+20*60000?' · Aktualisierung möglicherweise verzögert':'');
+}
+function renderDataReference(data,o,loaded,meta,now=Date.now()){
+  const card=el('div','card reference');card.id='reference';
+  const h=data.hourly,i=currentIndex(h,now),zone=data.timezone||'UTC';
+  const fields=[['temperature_2m','Temperatur'],['precipitation','Niederschlag'],['wind_speed_10m','Wind'],['wind_gusts_10m','Böen'],['freezing_level_height','Null-Grad-Grenze']];
+  const rows=fields.map(([v,label])=>{
+    const current=availableModels(h,v,i).length;
+    const complete=i<0?0:MODELS.filter(m=>!m.ref&&coverage(h,v,m.id,i,12).complete).length;
+    return `<tr><th scope="row">${label}</th><td>${current}/${MODELS.length-1}</td><td>${complete}/${MODELS.length-1}</td></tr>`;
+  }).join('');
+  const details=MODELS.map(m=>{
+    const values=fields.map(([v,label])=>{
+      const a=coverage(h,v,m.id,0,h.time.length);
+      return `${label}: ${a.count}/${h.time.length} h${a.last===null?'':', letzter Wert '+formatInstant(h.epoch[a.last]*1000,zone)}`;
+    }).join('<br>');
+    return `<details><summary>${m.nm}${m.ref?' · automatische Referenz':''}</summary><p>${values}</p><p>${m.ref?'Modelllauf unbekannt – Best-Match kombiniert Modelle.':'Zuletzt verfügbarer Lauf laut Anbieter: '+modelRunText(meta?.[m.id],now)}</p></details>`;
+  }).join('');
+  card.innerHTML=`<h2>Höhenbezug &amp; Datenstand</h2>
+    <p>${escapeHTML(heightReference(o,data))}</p>
+    <p>Zielpunkt: ${o.lat.toFixed(5)}, ${o.lon.toFixed(5)} (WGS84). Die Höhe verschiebt den Zielpunkt nicht. Höhenanpassung bildet lokale Gratbeschleunigung, Föhn oder Inversionen nicht zuverlässig ab. API-Bezugshöhe ist keine Angabe der ursprünglichen Modellorografie.</p>
+    <p><b>Abgerufen:</b> ${formatInstant(loaded,zone)}<br><b>Gültig für:</b> ${i<0?'Keine Prognose für die aktuelle Stunde':formatInstant(h.epoch[i]*1000,zone)}<br><b>Abrufalter:</b> ${Math.max(0,Math.floor((now-loaded)/60000))} min</p>
+    <details><summary>Verfügbare Modelle und Modellläufe</summary>
+    <table><caption>Konkrete Modelle mit Daten; Best-Match separat</caption><thead><tr><th>Variable</th><th>Aktuelle Stunde</th><th>12 h vollständig*</th></tr></thead><tbody>${rows}</tbody></table>
+    <p>* Zwölf Stunden ab der aktuellen Prognosestunde. Niederschlag: Stundensummen, jeweils für die vorangegangene Stunde. Gezählt werden endliche Werte; das ist keine Qualitätsbewertung und kein Nachweis unabhängiger Modelle.</p>
+    ${details}<p>Modellläufe sind Anbieter-Metadaten, kein Nachweis des Laufs jedes angezeigten Wertes. Fehlende Metadaten verhindern die Wetteranzeige nicht. Aktualisierungen können zwischen Servern bis etwa zehn Minuten versetzt sein. Metadaten abgerufen: ${formatInstant(metadataFetchedAt||null,zone)}.</p>
+    <a href="https://open-meteo.com/en/docs/model-updates" target="_blank" rel="noopener">Modellstatus bei Open-Meteo</a></details>`;
+  return card;
 }
 
 // --- State -------------------------------------------------------------------
 let CURRENT = null;            // aktueller Ort
 let FAVS = loadFavs();
 let lastData = null;
+let weatherRequest=0;
 
 function loadFavs(){ try{ return JSON.parse(localStorage.getItem('bw_favs')||'[]'); }catch(e){ return []; } }
 function saveFavs(){ localStorage.setItem('bw_favs', JSON.stringify(FAVS)); }
-function favKey(o){ return o.lat.toFixed(3)+','+o.lon.toFixed(3); }
+function favKey(o){ return o.lat.toFixed(5)+','+o.lon.toFixed(5)+','+(Number.isFinite(o.elevation)?o.elevation:'auto'); }
 function isFav(o){ return FAVS.some(f=>favKey(f)===favKey(o)); }
 function toggleFav(o){
   if(isFav(o)) FAVS = FAVS.filter(f=>favKey(f)!==favKey(o));
-  else FAVS.unshift({name:o.name, country:o.country||'', lat:o.lat, lon:o.lon, elevation:o.elevation});
+  else FAVS.unshift({name:o.name, country:o.country||'', lat:o.lat, lon:o.lon, elevation:o.elevation, elevationSource:o.elevationSource});
   FAVS = FAVS.slice(0,12); saveFavs(); renderChips();
 }
 
@@ -368,13 +492,13 @@ function toggleFav(o){
 function renderChips(){
   const c = $('#chips'); c.innerHTML='';
   FAVS.forEach(o=>{
-    const ch = el('div','chip fav','★ '+o.name);
+    const ch = el('div','chip fav','★ '+escapeHTML(o.name)+(Number.isFinite(o.elevation)?' · '+Math.round(o.elevation)+' m':''));
     ch.onclick = ()=>select(o);
     c.appendChild(ch);
   });
   PRESETS.forEach(o=>{
     if(isFav(o)) return;
-    const ch = el('div','chip', o.name+' <span class="dim" style="font-size:11px">'+o.country+'</span>');
+    const ch = el('div','chip', o.name+' <span class="dim" style="font-size:11px">'+escapeHTML(o.country)+'</span>');
     ch.onclick = ()=>select(o);
     c.appendChild(ch);
   });
@@ -399,7 +523,7 @@ async function geocode(q){
       const item = el('div', null, `<b>${res.name}</b> <small>${parts}${res.elevation!=null?' · '+Math.round(res.elevation)+' m':''}</small>`);
       item.onclick = ()=>{
         $('#search').value=''; box.style.display='none';
-        select({name:res.name, country:res.country_code||'', lat:res.latitude, lon:res.longitude, elevation:res.elevation});
+        select({name:res.name, country:res.country_code||'', lat:res.latitude, lon:res.longitude, elevation:res.elevation, elevationSource:'geocoding'});
       };
       box.appendChild(item);
     });
@@ -414,38 +538,70 @@ $('#reload').onclick = ()=>{ if(CURRENT) loadWeather(CURRENT); };
 
 // --- Ort wählen → laden ------------------------------------------------------
 function select(o){
+  o={...o,elevationSource:o.elevationSource||(PRESETS.includes(o)?'preset':'saved')};
   CURRENT = o;
+  $('#target-name').value=o.name;
+  $('#target-lat').value=o.lat;
+  $('#target-lon').value=o.lon;
+  $('#target-height').value=Number.isFinite(o.elevation)?o.elevation:'';
+  $('#target-error').textContent='';
   localStorage.setItem('bw_last', JSON.stringify(o));
   loadWeather(o);
 }
 
 // --- Hauptabruf --------------------------------------------------------------
 async function loadWeather(o){
-  $('#main').innerHTML = '<div class="status">Lade Modelle für <b>'+o.name+'</b> …</div>';
+  const request=++weatherRequest;
+  lastData=null;
+  $('#main').innerHTML = '<div class="status">Lade Modelle für <b>'+escapeHTML(o.name)+'</b> …</div>';
   $('#datastatus').textContent = 'Lade Daten …';
+  const metaPromise=loadModelMetadata();
   try{
-    const base = `latitude=${o.lat}&longitude=${o.lon}&timezone=auto`;
-    const urlMain = `https://api.open-meteo.com/v1/forecast?${base}`
-      + `&hourly=${HOURLY_VARS.join(',')}`
-      + `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,weather_code`
-      + `&models=${MODELS.map(m=>m.id).join(',')}&forecast_days=6`;
-    const mainR = await fetch(urlMain);
-    if(!mainR.ok) throw new Error('API '+mainR.status);
-    const data = await mainR.json();
-    lastData = {data, place:o};
-    render(data, o);
+    const data=prepareForecast(await fetchJSON(forecastURL(o)));
+    if(request!==weatherRequest)return;
+    const loaded=Date.now();
+    lastData={data,place:o,loaded,meta:null,extras:{},displayIndex:currentIndex(data.hourly)};
+    render(data,o,loaded,null);
+    void AlpineUI.start(lastData);
+    const meta=await metaPromise;
+    if(request!==weatherRequest)return;
+    lastData.meta=meta;
+    refreshReference();
   }catch(e){
-    $('#main').innerHTML = '<div class="err">Konnte Wetterdaten nicht laden: '+e.message+
+    if(request!==weatherRequest)return;
+    $('#main').innerHTML = '<div class="err">Konnte Wetterdaten nicht laden: '+escapeHTML(e.message)+
       '.<br>Bitte Internetverbindung prüfen und erneut versuchen.</div>';
     $('#datastatus').textContent='Fehler beim Laden';
   }
 }
+function refreshReference(){
+  if(!lastData)return;
+  const {data,place,loaded,meta}=lastData;
+  const old=$('#reference');
+  if(old){
+    const next=renderDataReference(data,place,loaded,meta);
+    // Keep expanded explanations open during age updates.
+    const opened=[...old.querySelectorAll('details')].map(e=>e.open);
+    next.querySelectorAll('details').forEach((e,i)=>e.open=!!opened[i]);
+    old.replaceWith(next);
+  }
+  $('#datastatus').textContent=`Abgerufen ${formatInstant(loaded,data.timezone||'UTC')}`;
+}
+$('#target-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  try{
+    const target=parseTarget($('#target-lat').value,$('#target-lon').value,$('#target-height').value);
+    const name=$('#target-name').value.trim()||'Eigener Zielpunkt';
+    select({...target,name,country:''});$('#target-editor').open=false;
+  }catch(error){$('#target-error').textContent=error.message;}
+});
 
 // --- Rendering ===============================================================
-function render(data, o){
-  const h = data.hourly, units = data.hourly_units, off = data.utc_offset_seconds;
-  const i = nowIndex(h.time, off);
-  const elev = num(o.elevation) ?? num(data.elevation);  // null nur, falls beide Quellen fehlen
+function render(data, o, loaded=Date.now(), meta=null){
+  const h = data.hourly;
+  const current = currentIndex(h);
+  const i = current;
+  const elev = Number.isFinite(data.elevation)?Math.round(data.elevation):null;  // tatsächlich verwendeter API-Höhenbezug
   const m = $('#main'); m.innerHTML='';
 
   // Referenzwerte (best_match) für den Hero
@@ -469,8 +625,8 @@ function render(data, o){
   // ---- HERO ----
   const hero = el('div','card hero');
   hero.innerHTML = `
-    <div class="place">${o.name}${o.country?' <span class="muted" style="font-size:13px;font-weight:400">· '+o.country+'</span>':''}</div>
-    <div class="when">${elev!=null?elev+' m':'—'} · ${fmtDay(h.time[i].split('T')[0])}, ${fmtTime(h.time[i])} Uhr Ortszeit · ${txt}</div>
+    <div class="place">${escapeHTML(o.name)}${o.country?' <span class="muted" style="font-size:13px;font-weight:400">· '+escapeHTML(o.country)+'</span>':''}</div>
+    <div class="when">${elev!=null?elev+' m API-Bezugshöhe':'Höhenbezug unbekannt'} · ${current<0?'Keine aktuelle Prognosestunde':formatInstant(h.epoch[i]*1000,data.timezone||'UTC')} · ${txt}</div>
     <div class="heromain">
       <div class="wx">${icon}</div>
       <div class="temp">${fmt(T)}°</div>
@@ -483,6 +639,7 @@ function render(data, o){
     </div>
     <div class="feels">Gefühlt (Windchill): <b>${fmt(wc)}°</b>${T!=null&&wc!=null&&Math.abs(wc-T)>=1?' · '+fmt(wc-T)+'° durch Wind':''}</div>`;
   m.appendChild(hero);
+  m.appendChild(renderDataReference(data,o,loaded,meta));
 
   // ---- PROGNOSE-SICHERHEIT (Modell-Einigkeit) ----
   m.appendChild(renderReliability(h, i));
@@ -493,11 +650,14 @@ function render(data, o){
   // ---- WIND + WINDCHILL ----
   m.appendChild(renderWind(T, ws, wg, wd, wc, rh));
 
+  m.appendChild(AlpineUI.stationCard(lastData?.extras,o));
+  m.appendChild(AlpineUI.ensembleCard(lastData?.extras,o));
+
   // ---- DIAGRAMM Null-Grad + Temp ----
-  m.appendChild(renderChart(h, i, elev));
+  if(current>=0) m.appendChild(renderChart(h, i, elev));
 
   // ---- STUNDENVERLAUF ----
-  m.appendChild(renderHours(h, i, elev));
+  if(current>=0) m.appendChild(renderHours(h, i, elev));
 
   // ---- TAGE ----
   if(data.daily) m.appendChild(renderDays(data.daily));
@@ -509,8 +669,7 @@ function render(data, o){
   m.appendChild(favBtn);
   $('#favbtn').onclick = ()=>{ toggleFav(o); loadWeather(o); };
 
-  const upd = new Date(Date.now()+off*1000);
-  $('#datastatus').textContent = 'Stand '+String(upd.getUTCHours()).padStart(2,'0')+':'+String(upd.getUTCMinutes()).padStart(2,'0')+' · '+MODELS.length+' Modelle';
+  $('#datastatus').textContent='Abgerufen '+formatInstant(loaded,data.timezone||'UTC');
 }
 
 // Kleiner rotierender Windpfeil — zeigt in die Richtung, WOHIN der Wind weht (Strömung). Wind aus SW → Pfeil nach NO.
@@ -523,11 +682,12 @@ function windArrow(deg, size=16){
 // ---- Modellübereinstimmung: Temperatur jetzt, Niederschlag nächste 12 h ----
 function renderReliability(h, i){
   const models = MODELS.filter(mo=>mo.id!=='best_match');
-  const WIN=12, end=Math.min(h.time.length, i+WIN);
+  const WIN=12, start=i+1, end=i<0?0:Math.min(h.time.length, start+WIN);
   const rows=models.map(mo=>{
     const T=get(h,'temperature_2m',mo.id,i);
-    let wet=false, complete=end-i===WIN;
-    for(let k=i;k<end;k++){
+    let wet=false, complete=i>=0&&end-start===WIN;
+    for(let k=Math.max(0,start);k<end;k++){
+      if(h.epoch && h.epoch[k]!==h.epoch[i]+(k-i)*3600) complete=false;
       const c=get(h,'weather_code',mo.id,k), pr=get(h,'precipitation',mo.id,k);
       if(pr==null && c==null) complete=false;
       if((pr!=null && pr>=0.2) || (c!=null && c>=51)) wet=true;
@@ -535,7 +695,7 @@ function renderReliability(h, i){
     return {mo,T,wet:wet?true:complete?false:null};
   }).filter(r=>r.T!=null);
   const n=rows.length, card=el('div','card');
-  const scope='Temperatur: aktuelle Stunde · Niederschlag: nächste 12 h (ab 0,2 mm/h oder Niederschlags-Wettercode). Wind und Böen werden hier nicht bewertet. Modellübereinstimmung ist keine Garantie für die Vorhersage.';
+  const scope='Temperatur: aktuelle Stunde · Niederschlag: 12-Stunden-Fenster ab der aktuellen vollen Stunde (ab 0,2 mm/h oder Niederschlags-Wettercode). Wind und Böen werden hier nicht bewertet. Modellübereinstimmung ist keine Garantie für die Vorhersage.';
   if(n<2){
     card.innerHTML = `<h2><span class="i">◉</span> Modellübereinstimmung</h2>
       <div class="reldetail muted">${n===0?'Kein Modell liefert':'Nur ein Modell liefert'} aktuelle Temperaturdaten – keine Vergleichsbasis.</div>
@@ -644,7 +804,7 @@ function renderWind(T, ws, wg, wd, wc, rh){
           <div class="bft">${bftG!=null?bftG+' Bft':''}</div></div>
         <div class="stat dirstat"><div class="l">Richtung</div><div class="b dirb">${wd==null?'—':'aus '+dir16full(wd)} <small>${fmt(wd)}°</small></div></div>
         <div class="stat chill"><div class="l">Gefühlt (Windchill)</div><div class="b">${fmt(wc)}°</div>
-          <div class="bft">${chillDiff!=null&&chillDiff>=1?'−'+Math.round(chillDiff)+'° durch Wind':'kaum Windeinfluss'}</div></div>
+          <div class="bft">${chillDiff===null?'nicht bewertbar':chillDiff>=1?'−'+Math.round(chillDiff)+'° durch Wind':'kaum Windeinfluss'}</div></div>
       </div>
     </div>`;
   return card;
@@ -760,7 +920,7 @@ function renderHours(h, i, elev){
     const day = h.time[k].split('T')[0];
     const newDay = day!==lastDay; lastDay=day;
     const hh = fmtTime(h.time[k]).slice(0,2);                          // nur die Stunde
-    const label = k===i ? 'jetzt' : (newDay ? fmtDay(day) : hh);       // Tageswechsel -> Wochentag als Trenner
+    const label = k===i ? hh : (newDay ? fmtDay(day) : hh);       // Tageswechsel -> Wochentag als Trenner
     cells += `<div class="hr" data-k="${k}" role="button" tabindex="0" aria-expanded="false" aria-controls="hrdetail" aria-label="${fmtTime(h.time[k])} Uhr – Details anzeigen">
       <div class="t"${newDay&&k!==i?' style="color:var(--ice);font-weight:700"':''}>${label}</div>
       <div class="ic">${ic}</div>
@@ -786,7 +946,7 @@ function renderHours(h, i, elev){
     const wc=windchill(T,ws);
     const snow = fz!=null ? Math.max(0, Math.round((fz-250)/10)*10) : null;  // Schneefallgrenze ≈ Null-Grad −250 m
     const t=h.time[k];
-    const head = (k===i?'Jetzt · ':'')+fmtDay(t.split('T')[0])+', '+fmtTime(t)+' Uhr';
+    const head = h.epoch ? formatInstant(h.epoch[k]*1000,lastData?.data.timezone||'UTC') : fmtDay(t.split('T')[0])+', '+fmtTime(t)+' Uhr';
     const dirTxt = wd==null ? null : 'aus '+dir16full(wd)+' <small>('+fmt(wd)+'°)</small> '+windArrow(wd,14);
     const gefuehlt = (wc!=null && T!=null && Math.abs(wc-T)>=1) ? fmt(wc)+' °C' : null;
     return `<div class="hdhead">${ic} ${head}</div>
@@ -855,6 +1015,15 @@ function renderDays(d){
 
 // --- Init --------------------------------------------------------------------
 renderChips();
+setInterval(()=>{
+  if(!lastData)return;
+  const current=currentIndex(lastData.data.hourly);
+  if(current!==lastData.displayIndex){
+    lastData.displayIndex=current;
+    render(lastData.data,lastData.place,lastData.loaded,lastData.meta);
+  }else refreshReference();
+  AlpineUI.refresh(lastData.extras,lastData.place);
+},60000);
 (function init(){
   let last=null; try{ last=JSON.parse(localStorage.getItem('bw_last')||'null'); }catch(e){}
   if(last) select(last);

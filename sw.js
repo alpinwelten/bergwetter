@@ -2,11 +2,13 @@
    Strategie: App-Shell beim Install vorgeladen; Inhalt (HTML) network-first
    (damit Updates ohne Neuinstallation ankommen), übrige same-origin GETs cache-first.
    Live-Wetterdaten von api.open-meteo.com sind cross-origin und laufen immer direkt
-   durchs Netz (kein Cache) – die App zeigt also stets aktuelle Werte. */
-const VERSION = 'bergwetter-v11';
+   durchs Netz (kein Cache) – ein neuer Abruf ist kein Nachweis eines neuen Modelllaufs. */
+const VERSION = 'bergwetter-v13';
 const SHELL = [
   './',
   'index.html',
+  'alpine-data.js',
+  'alpine-ui.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
