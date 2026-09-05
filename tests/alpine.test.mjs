@@ -55,3 +55,11 @@ test('cached ensemble keeps the original fetch timestamp',async()=>{
  const second=await a.ensemble({lat:47,lon:11,elevation:2000});
  assert.equal(calls,1);assert.equal(first.fetchedAt,1000000);assert.equal(second.fetchedAt,1000000);
 });
+test('ensemble metadata is cached and failures degrade to null',async()=>{
+ let calls=0;context.Date=Date;
+ context.fetch=async()=>{calls++;return {ok:true,json:async()=>({last_run_initialisation_time:1788598800,last_run_availability_time:1788607291,update_interval_seconds:10800})};};
+ const first=await a.ensembleMeta();const second=await a.ensembleMeta();
+ assert.equal(calls,1);assert.equal(first.last_run_initialisation_time,1788598800);assert.equal(second,first);
+ context.fetch=async()=>{throw Error('offline');};
+ assert.equal(await a.ensembleMeta(),first);
+});

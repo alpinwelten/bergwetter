@@ -24,9 +24,13 @@ Schlichte, schnelle **PWA** fürs alpine Bergwetter mit **Modellvergleich**, **N
   angefragt; leere Höhe nutzt Open-Meteos Geländemodell. Zielhöhe, Herkunft und
   zurückgegebene API-Bezugshöhe werden getrennt angezeigt. Abweichungen ab 1 m
   werden genannt (technischer Vergleich, keine Genauigkeitstoleranz).
+- **Übersichtlichkeit:** Die Karten zeigen nur Daten. Methodische Vorbehalte und
+  Grenzen stehen gesammelt im eingeklappten Abschnitt „Methodik & Grenzen“ am Seitenende;
+  die Datenstand-Karte ist eingeklappt. Zeiten erscheinen kurz als Wochentag und Uhrzeit,
+  die Zeitzone steht einmal im Kopf.
 - **Datenstand:** Abrufzeit, Abrufalter, Gültigkeitszeit und zuletzt verfügbarer
-  Modelllauf getrennt. Zeitrechnung intern in UTC-Unixsekunden; Darstellung mit
-  Datum, Ortszeitzone und UTC-Offset, auch bei Sommerzeitwechsel. Anzeigealter und
+  Modelllauf getrennt. Zeitrechnung intern in UTC-Unixsekunden; Darstellung als
+  Wochentag und Uhrzeit in der Ortszeitzone, auch bei Sommerzeitwechsel. Anzeigealter und
   aktuelle Prognosestunde werden minütlich aktualisiert, ohne Wetter neu abzurufen.
 - **Datenabdeckung:** endliche Werte je Variable in der aktuellen Stunde und
   vollständige zwölf Stunden ab dieser Stunde; Best-Match zählt separat. Details
@@ -143,8 +147,10 @@ Quellennennung in den Messkarten. Keine zugesicherte Verfügbarkeit.
   Zeitraum nicht künstlich verkürzt. Das verlängert den Modellhorizont nicht.
 - P10–P90 ist kein garantierter Wetterbereich; Anteile sind unkalibrierte
   Ensemblehäufigkeiten. Gemeinsame Modellfehler und lokale Exposition bleiben Grenzen.
-- API-Bezugshöhe, ursprüngliche Abrufzeit und Abrufalter werden gezeigt. Der konkrete
-  Lauf der gelieferten Mitglieder bleibt unbekannt. Zehn Minuten In-Memory-Cache.
+- API-Bezugshöhe, ursprüngliche Abrufzeit und Abrufalter werden gezeigt. Der Modelllauf
+  stammt aus den Anbieter-Metadaten zu ICON-D2-EPS (`/data/dwd_icon_d2_eps/static/meta.json`),
+  nicht aus der Ensembleantwort selbst; die Zuordnung ist plausibel, nicht bestätigt.
+  Zehn Minuten In-Memory-Cache für Ensemble und Metadaten.
 
 [Ensemble-API und Modellumfang](https://open-meteo.com/en/docs/ensemble-api).
 Kein neues Backend, kein zusätzlicher API-Schlüssel. Der Open-Meteo-Nutzungsumfang

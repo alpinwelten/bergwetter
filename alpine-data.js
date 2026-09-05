@@ -107,10 +107,14 @@
     if(Number.isFinite(target.elevation))p.set('elevation',target.elevation);
     return 'https://ensemble-api.open-meteo.com/v1/ensemble?'+p;
   }
+  async function ensembleMeta(){
+    try{return (await request('https://api.open-meteo.com/data/dwd_icon_d2_eps/static/meta.json','json',600000)).value;}
+    catch{return null;}
+  }
   async function ensemble(target){
     const entry=await request(ensembleURL(target),'json',600000),d=entry.value;
     if(!Array.isArray(d.hourly?.time)||!d.hourly.time.every(Number.isFinite))throw Error('Ungültige Ensemble-Zeitachse');
     return {...d,fetchedAt:entry.fetchedAt};
   }
-  root.AlpineData={number,csvObjects,distance,rankStations,catalogAT,catalogCH,stationCandidates,parseATObservation,parseCHObservation,observation,freshness,members,quantile,memberSummary,windowSummary,ensembleURL,ensemble};
+  root.AlpineData={number,csvObjects,distance,rankStations,catalogAT,catalogCH,stationCandidates,parseATObservation,parseCHObservation,observation,freshness,members,quantile,memberSummary,windowSummary,ensembleURL,ensemble,ensembleMeta};
 })(globalThis);
